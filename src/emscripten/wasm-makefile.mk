@@ -8,6 +8,11 @@ bits = 64
 SUPPORTED_ARCH=true
 WASM_STACK_SIZE_SETTING ?= STACK_SIZE
 
+# The target is WebAssembly regardless of the build host. In particular, do
+# not let Stockfish's native Darwin settings pass -arch wasm,
+# -mmacosx-version-min, or -mdynamic-no-pic to Emscripten.
+KERNEL := Emscripten
+
 ifeq ($(ASMJS),yes)
 	EM_LDFLAGS  += -s WASM=0
 	popcnt = no
