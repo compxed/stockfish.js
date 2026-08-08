@@ -93,6 +93,15 @@ do not populate them from URL parameters or other untrusted user input. The
 application is responsible for serving engine artifacts from an origin it
 controls and for applying its usual integrity and Content Security Policy.
 
+#### Rapid live-analysis updates
+
+The generated worker serializes commands that change engine state. If a client
+sends positions faster than the active search can stop, pending `position` and
+`go` commands are coalesced so only the newest analysis starts. Configuration
+commands retain FIFO order, and `isready` remains behind any earlier queued
+changes. A standalone `isready` still pings an active search immediately, as
+required by UCI.
+
 ### How do I compile the engine?
 
 You only need to compile the engine if you want to make changes to the engine itself.
