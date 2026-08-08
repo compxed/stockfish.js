@@ -70,13 +70,45 @@ commands retain FIFO order, and `isready` remains behind any earlier queued
 changes. A standalone `isready` still pings an active search immediately, as
 required by UCI.
 
+#### Automatic browser build selection
+
+`loader.js` selects by WebAssembly capabilities instead of the user-agent string. It probes the exact relaxed NNUE dot-product instruction, tries compatible builds in priority order, and falls back after worker initialization errors. The default list covers relaxed and regular SIMD, threaded and single-threaded lite builds, followed by ASM.js.
+
+```html
+<script src="./loader.js"></script>
+<script>
+StockfishLoader.load({
+    baseUrl: "./engines",
+    onFallback: function (error, variant) {
+        console.warn("Could not start " + variant.id, error);
+    }
+}).then(function (engine) {
+    console.log(engine.stockfishVariant.id);
+    console.log(engine.stockfishSelection);
+    engine.onmessage = function (event) {
+        console.log(event.data);
+    };
+    engine.postMessage("position startpos");
+    engine.postMessage("go depth 18");
+});
+</script>
+```
+
+Applications can pass a `variants` array to use a different artifact set or priority. Set `threads`, `relaxedSimd`, or `allowAsm` to `false` to remove those default choices. Selecting the search thread count remains the application's responsibility.
+
+The loader executes the selected JavaScript artifact in a Web Worker. Treat
+`baseUrl`, `variants`, and `workerOptions` as trusted application configuration;
+do not populate them from URL parameters or other untrusted user input. The
+application is responsible for serving engine artifacts from an origin it
+controls and for applying its usual integrity and Content Security Policy.
+
 ### How do I compile the engine?
 
 You only need to compile the engine if you want to make changes to the engine itself.
 
 In order to compile the engine, you need to have <a href="https://emscripten.org/docs/getting_started/downloads.html">Emscripten `6.0.6`</a> installed and in your path. Then you can compile Stockfish.js with the build script: `./build.js`. See `./build.js --help` for details. To build all flavors, run `./build.js --all`.
 
-To build a faster variant for browsers that support WebAssembly relaxed SIMD, add `--relaxed-simd`. For example, `./build.js --lite --single-threaded --relaxed-simd` creates `stockfish-18-lite-single-relaxed.js` and its matching WASM file. This build uses the relaxed integer dot-product instruction in the NNUE evaluation path. Applications loading this artifact directly must detect support for that exact instruction and keep the regular SIMD build as a fallback.
+To build an optional variant for browsers that support WebAssembly relaxed SIMD, add `--relaxed-simd`. For example, `./build.js --lite --single-threaded --relaxed-simd` creates `stockfish-19-lite-single-relaxed.js` and its matching WASM file. This build uses the relaxed integer dot-product instruction in the NNUE evaluation path. Applications loading this artifact directly must detect support for that exact instruction and keep the regular SIMD build as a fallback. When `StockfishLoader` is used, it performs this exact probe and fallback automatically.
 
 ### Thanks
 
