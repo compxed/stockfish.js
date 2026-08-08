@@ -24,7 +24,9 @@
   "license": "GPL-3.0",
   "bin": "scripts/cli.js",
   "scripts": {
-    "test": "node tests/runtime.test.js",
+    "test": "npm run test:runtime && npm run test:relaxed-simd",
+    "test:runtime": "node tests/runtime.test.js",
+    "test:relaxed-simd": "node tests/relaxed-simd.test.js",
     "build": "node build.js -f",
     "build-lite": "node build.js --lite -f",
     "build-single": "node build.js --single-threaded -f",

@@ -18,6 +18,9 @@ ifeq ($(ASMJS),yes)
 	EM_LDFLAGS += --memory-init-file 0
 else
 	EM_CXXFLAGS += -msimd128
+	ifeq ($(WASM_RELAXED_SIMD),yes)
+		EM_CXXFLAGS += -mrelaxed-simd -DSTOCKFISH_WASM_RELAXED_SIMD
+	endif
 	# CPU settings
 	popcnt = yes
 	sse = yes

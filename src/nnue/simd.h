@@ -35,6 +35,10 @@
     #include <arm_neon.h>
 #endif
 
+#if defined(STOCKFISH_WASM_RELAXED_SIMD)
+    #include <wasm_simd128.h>
+#endif
+
 #include "../types.h"
 #include "nnue_common.h"
 
@@ -333,9 +337,16 @@ fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operan
 
 [[maybe_unused]] static void m128_add_dpbusd_epi32(__m128i& acc, __m128i a, __m128i b) {
 
+    #if defined(STOCKFISH_WASM_RELAXED_SIMD)
+    // NNUE activations in a are unsigned 7-bit values, while weights in b are signed 8-bit.
+    // The WebAssembly instruction expects the signed i8 vector first and the i7 vector second.
+    acc = (__m128i) wasm_i32x4_relaxed_dot_i8x16_i7x16_add((v128_t) b, (v128_t) a,
+                                                           (v128_t) acc);
+    #else
     __m128i product0 = _mm_maddubs_epi16(a, b);
     product0         = _mm_madd_epi16(product0, _mm_set1_epi16(1));
     acc              = _mm_add_epi32(acc, product0);
+    #endif
 }
 
 #endif

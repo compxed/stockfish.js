@@ -8,7 +8,7 @@ var runSpawnSync = require("child_process").spawnSync;
 var runExecFileSync = require("child_process").execFileSync;
 var params = getParams({booleans: [
     "no-chesscom", "h", "help", "help-all", "f", "force", "force-linking", "s", "silent", "bin", "colors", "no-color", "no-minify", "v", "verbose", "debug-wasm", "all",
-    "skip-em-check", "strict-em-check", "single-threaded", "lite", "ultra-lite", "wasm-debug", "asm-js", "keep-syzygy", "hash", "no-split",
+    "skip-em-check", "strict-em-check", "single-threaded", "lite", "ultra-lite", "wasm-debug", "asm-js", "keep-syzygy", "hash", "no-split", "relaxed-simd",
     "skip-asm", "skip-single", "skip-lite", "skip-single-lite", "skip-lite-single", "skip-standard",
     "only-asm", "only-single", "only-lite", "only-single-lite", "only-lite-single", "only-standard",
     "debug", "do-not-verify-nets",
@@ -666,6 +666,12 @@ if (params["asm-js"]) {
     params["single-threaded"] = true;
 }
 
+if (params["relaxed-simd"] && params["asm-js"] &&
+        !params.help && !params["help-all"] && !params.h) {
+    console.error("--relaxed-simd is only available for WebAssembly builds");
+    process.exit(1);
+}
+
 if (params.split && typeof params.split === "boolean") {
     params.split = "6";
 }
@@ -708,6 +714,7 @@ if (params.help || params["help-all"] || params.h) {
     console.log("  " + highlight("--only-lite-single") + " Only build lite single-threaded engine with " + highlight("--all"));
     console.log("  " + highlight("--only-single") + "      Only build non-lite single-threaded engine with " + highlight("--all"));
     console.log("  " + highlight("--only-standard") + "    Only build standard, multi-threaded engine with " + highlight("--all"));
+    console.log("  " + highlight("--relaxed-simd") + "     Enable WebAssembly relaxed SIMD instructions");
     console.log("  " + highlight("-s --silent") + "        Do not beep");
     console.log("  " + highlight("--single-threaded") + "  Compile the engine without Pthreads");
     console.log("  " + highlight("--skip-asm") + "         Do not build the ASM.JS engine with " + highlight("--all"));
@@ -789,7 +796,10 @@ if (params.all) {
         console.log(highlight(" -- (1/5) Building ASM-JS engine..."));
         if (!params["skip-asm"] && (!hasOnlyFlag || params["only-asm"])) {
             removeOld("-asm");
-            spawnSync(process.execPath, newArgs.concat(["--asm-js", "--no-split"]), {encoding: "utf8", env: process.env, cwd: __dirname, stdio: [0,1,2]});
+            spawnSync(process.execPath, newArgs.filter(function (arg)
+            {
+                return arg !== "--relaxed-simd";
+            }).concat(["--asm-js", "--no-split"]), {encoding: "utf8", env: process.env, cwd: __dirname, stdio: [0,1,2]});
         } else {
             console.log(note("  Skipping..."));
         }
@@ -817,7 +827,8 @@ if (params.all) {
         console.log(highlight(" -- (5/5) Building Multi-threaded Standard engine..."));
         if (!params["skip-standard"] && (!hasOnlyFlag || params["only-standard"])) {
             removeOld("");
-            spawnSync(process.execPath, newArgs.concat(["--basename=stockfish-" + stockfishVersionNumber]), {encoding: "utf8", env: process.env, cwd: __dirname, stdio: [0,1,2]});
+            spawnSync(process.execPath, newArgs.concat(["--basename=stockfish-" + stockfishVersionNumber +
+                (params["relaxed-simd"] ? "-relaxed" : "")]), {encoding: "utf8", env: process.env, cwd: __dirname, stdio: [0,1,2]});
         } else {
             console.log(note("  Skipping..."));
         }
@@ -887,6 +898,19 @@ if (params["single-threaded"]) {
     args.push("WASM_SINGLE_THREADED=yes");
     if (!basename) {
         basename = "stockfish-" + stockfishVersionNumber + "-single";
+    }
+}
+
+if (params["relaxed-simd"]) {
+    if (!buildWithEmscripten || params.arch !== "wasm") {
+        console.error("--relaxed-simd requires a WebAssembly build");
+        process.exit(1);
+    }
+    args.push("WASM_RELAXED_SIMD=yes");
+    // Keep portable and relaxed artifacts side by side unless the caller
+    // explicitly chose a basename.
+    if (typeof params.basename !== "string") {
+        basename = (basename || "stockfish-" + stockfishVersionNumber) + "-relaxed";
     }
 }
 
