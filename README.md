@@ -34,6 +34,33 @@ Stockfish.js is simply a raw engine. You'll need to bring the rest of the parts 
 
 To learn how to use the engine in your own projects, see the <a href="https://github.com/nmrugg/stockfish.js/tree/master/examples">examples folder</a>. In particular, see `examples/loadEngine.js` for a sample implementation of how to load and run engines.
 
+#### Node.js module lifecycle
+
+The Node.js entry point supports both Promises and callbacks. `sendCommand()`
+returns a Promise and waits for module initialization, so it is safe to call as
+soon as the callback-style loader returns. The callback receives the same
+stable engine object that was returned by the loader.
+
+Call `dispose()` (or its backwards-compatible alias `terminate()`) when the
+engine is no longer needed. Disposal sends `quit`, terminates Emscripten worker
+threads, and releases process listeners owned by that engine instance. It is
+safe to call more than once.
+
+Initialization is cancelled after 60 seconds by default. Applications that
+need a different limit can pass `initializationTimeout` in milliseconds as the
+second argument, for example
+`require("stockfish")("lite-single", {initializationTimeout: 30000})`.
+
+```js
+const engine = await require("stockfish")("lite-single");
+
+engine.listener = console.log;
+await engine.sendCommand("uci");
+
+// Later, after the last search has finished:
+engine.dispose();
+```
+
 ### How do I compile the engine?
 
 You only need to compile the engine if you want to make changes to the engine itself.
