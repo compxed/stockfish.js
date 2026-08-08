@@ -421,6 +421,11 @@ void dbg_clear() {
 // to avoid multiple threads writing at the same time.
 std::ostream& operator<<(std::ostream& os, SyncCout sc) {
 
+#ifdef __EMSCRIPTEN_SINGLE_THREADED__
+    // This build has no concurrent writers and no pthread runtime. Recent
+    // Emscripten versions abort if a std::mutex reaches their pthread stubs.
+    (void) sc;
+#else
     static std::mutex m;
 
     if (sc == IO_LOCK)
@@ -428,6 +433,7 @@ std::ostream& operator<<(std::ostream& os, SyncCout sc) {
 
     if (sc == IO_UNLOCK)
         m.unlock();
+#endif
 
     return os;
 }
@@ -521,6 +527,11 @@ std::string CommandLine::get_binary_directory(std::string argv0) {
 }
 
 std::string CommandLine::get_working_directory() {
+#ifdef __EMSCRIPTEN__
+    // Production WebAssembly builds embed their networks and use
+    // NO_FILESYSTEM=1, so avoid importing getcwd().
+    return "";
+#else
     std::string workingDirectory = "";
     char        buff[40000];
     char*       cwd = GETCWD(buff, 40000);
@@ -528,6 +539,7 @@ std::string CommandLine::get_working_directory() {
         workingDirectory = cwd;
 
     return workingDirectory;
+#endif
 }
 
 

@@ -6,6 +6,7 @@ comp = clang
 arch = wasm
 bits = 64
 SUPPORTED_ARCH=true
+WASM_STACK_SIZE_SETTING ?= STACK_SIZE
 
 ifeq ($(ASMJS),yes)
 	EM_LDFLAGS  += -s WASM=0
@@ -89,6 +90,10 @@ EM_LDFLAGS  += -s EXPORT_NAME="Stockfish"
 EM_LDFLAGS  += -s EXPORTED_RUNTIME_METHODS=ccall
 EM_LDFLAGS  += -s LLD_REPORT_UNDEFINED
 
+# Emscripten 6 defaults to a 64 KiB stack, which is too small for a recursive
+# Stockfish search. This also becomes the default stack size of pthreads.
+EM_LDFLAGS  += -s $(WASM_STACK_SIZE_SETTING)=8388608
+
 ifeq ($(WASM_SINGLE_THREADED),yes)
 	EM_CXXFLAGS += -D__EMSCRIPTEN_SINGLE_THREADED__
 	EM_LDFLAGS  += -s USE_PTHREADS=0
@@ -98,7 +103,7 @@ ifeq ($(WASM_SINGLE_THREADED),yes)
 	#EM_LDFLAGS  += --pre-js emscripten/pre-single-threaded.js
 	EM_LDFLAGS  += -s ASYNCIFY=1
 	EM_LDFLAGS  += -s ASYNCIFY_STACK_SIZE=10485760
-	EM_LDFLAGS  += -s EXPORTED_FUNCTIONS="['_main','_command','_isSearching']"
+	EM_LDFLAGS  += -s EXPORTED_FUNCTIONS="['_main','_command','_isReady','_isSearching']"
 	EM_LDFLAGS  += --extern-pre-js emscripten/extern-pre-async.js
 else
 	EM_LDFLAGS  += -s EXPORTED_FUNCTIONS="['_main','_command','_isReady','_isSearching']"

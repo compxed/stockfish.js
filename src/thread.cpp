@@ -81,9 +81,9 @@ Thread::~Thread() {
 
     assert(!searching);
 
+#ifndef __EMSCRIPTEN_SINGLE_THREADED__
     exit = true;
     start_searching();
-#ifndef __EMSCRIPTEN_SINGLE_THREADED__
     stdThread.join();
 #endif
 }

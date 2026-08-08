@@ -28,7 +28,7 @@ var postscript;
 var buildWithEmscripten;
 var child;
 var stockfishVersionNumber = require("./package.json").buildVersion;
-var expectedEmscripten = "3.1.7";
+var expectedEmscripten = "6.0.6";
 var fistRun;
 var basename;
 var buildingSingleThreaded = false;
@@ -434,10 +434,15 @@ function fixUpWASMBuild()
     var finalLoaderPath = stockfishWASMLoaderPath;
     
     if (!params["single-threaded"]) {
-        workerData = fs.readFileSync(stockfishWorkerThreadPath, "utf8") + workerExternPostData;
-        try {
+        if (fs.existsSync(stockfishWorkerThreadPath)) {
+            workerData = fs.readFileSync(stockfishWorkerThreadPath, "utf8") + workerExternPostData;
             fs.unlinkSync(stockfishWorkerThreadPath);
-        } catch (e) {}
+        } else {
+            // Current Emscripten pthread workers load the main JavaScript file
+            // instead of a separately emitted stockfish.worker.js. Start the
+            // generated factory so it can install its worker message handler.
+            workerData = "Stockfish = INIT_ENGINE();";
+        }
     }
     stockfishWASMLoaderData = fs.readFileSync(stockfishWASMLoaderPath, "utf8").replace(/\/\/\/ Insert worker here/, workerData);
     stockfishWASMLoaderData = fillInBlanks(stockfishWASMLoaderData);
@@ -642,6 +647,13 @@ if (params.arch) {
     buildWithEmscripten = true;
     params.arch = "wasm";
     args.push("ARCH=wasm");
+}
+
+if (buildWithEmscripten) {
+    /// `em++ -dumpversion` reports the Emscripten wrapper version, so the
+    /// Stockfish Makefile otherwise mistakes Emscripten 6 for Clang < 16 and
+    /// adds the removed -fexperimental-new-pass-manager option.
+    args.push("clangmajorversion=16");
 }
 
 if (params["asm-js"]) {

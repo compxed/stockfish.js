@@ -29,9 +29,7 @@ using namespace Stockfish;
 
 #ifdef __EMSCRIPTEN__
 UCIEngine* uciP; // Create a global pointer to the UCI object
-    #ifndef __EMSCRIPTEN_SINGLE_THREADED__
-        bool ready = false;
-    #endif
+bool       ready = false;
 #endif
 
 int main(int argc, char* argv[]) {
@@ -49,9 +47,7 @@ int main(int argc, char* argv[]) {
 #else
     uciP = new UCIEngine(argc, argv); // initialize the UCI object
     Tune::init(uciP->engine_options());
-    #ifndef __EMSCRIPTEN_SINGLE_THREADED__
-        ready = true;
-    #endif
+    ready = true;
 #endif
 
     return 0;
@@ -61,9 +57,5 @@ int main(int argc, char* argv[]) {
 extern "C" void command(const char *cmd) {
     uciP->process_command(cmd);
 }
-    #ifndef __EMSCRIPTEN_SINGLE_THREADED__
-    extern "C" bool isReady() {
-        return ready;
-    }
-    #endif
+extern "C" bool isReady() { return ready; }
 #endif

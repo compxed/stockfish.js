@@ -27,7 +27,24 @@
 // The implementation calls pthread_create() with the stack size parameter
 // equal to the Linux 8MB default, on platforms that support it.
 
-#if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
+#if defined(__EMSCRIPTEN_SINGLE_THREADED__)
+
+namespace Stockfish {
+
+// Search jobs are executed directly in Thread::run_custom_job(). Avoid
+// pthread_create(): newer non-pthread Emscripten stubs may run the supplied
+// routine synchronously and block forever in Thread::idle_loop().
+class NativeThread {
+   public:
+    template<class Function, class... Args>
+    explicit NativeThread(Function&&, Args&&...) {}
+
+    void join() {}
+};
+
+}  // namespace Stockfish
+
+#elif defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
 
     #include <pthread.h>
     #include <functional>
