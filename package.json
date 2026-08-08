@@ -28,6 +28,7 @@
     "build-lite": "node build.js --lite -f",
     "build-single": "node build.js --single-threaded -f",
     "build-single-lite": "node build.js --single-threaded --lite -f",
+    "test": "node tests/browser-benchmark.test.js",
     "postinstall": "node scripts/postinstall.js",
     "prepack": "node scripts/prepack.js",
     "postpack": "node scripts/postpack.js"
