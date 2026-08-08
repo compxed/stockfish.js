@@ -24,9 +24,10 @@
   "license": "GPL-3.0",
   "bin": "scripts/cli.js",
   "scripts": {
-    "test": "npm run test:runtime && npm run test:relaxed-simd",
+    "test": "npm run test:runtime && npm run test:relaxed-simd && npm run test:loader",
     "test:runtime": "node tests/runtime.test.js",
     "test:relaxed-simd": "node tests/relaxed-simd.test.js",
+    "test:loader": "node tests/loader.test.js",
     "build": "node build.js -f",
     "build-lite": "node build.js --lite -f",
     "build-single": "node build.js --single-threaded -f",
@@ -37,6 +38,7 @@
   },
   "files": [
     "bin/",
+    "loader.js",
     "scripts/postinstall.js"
   ],
   "readmeFilename": "README.md",
