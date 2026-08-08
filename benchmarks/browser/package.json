@@ -1,0 +1,15 @@
+{
+  "name": "stockfish-js-browser-benchmark",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Paired Stockfish.js benchmark in real browser Web Workers",
+  "scripts": {
+    "benchmark": "node paired.js"
+  },
+  "devDependencies": {
+    "playwright": "1.62.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
