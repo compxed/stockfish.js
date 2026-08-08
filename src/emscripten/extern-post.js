@@ -13,9 +13,8 @@ if (typeof self !== "undefined" && self.location.hash.split(",")[1] === "worker"
         var isNode = typeof global !== "undefined" && Object.prototype.toString.call(global.process) === "[object process]";
         var engine = {};
         var startUpQueue = [];
-        var queue = [];
+        var commandQueue;
         var wasmPath;
-        var queueTimer;
         
         function completer(line)
         {
@@ -100,7 +99,7 @@ if (typeof self !== "undefined" && self.location.hash.split(",")[1] === "worker"
         function sendCommand(cmd)
         {
             ///NOTE: The single-threaded engine needs to specifiy async for "go" commands to prevent memory leaks and other errors.
-            engine.ccall("command", null, ["string"], [cmd], {async: typeof IS_ASYNCIFY !== "undefined" && /^go\b/.test(cmd)});
+            var result = engine.ccall("command", null, ["string"], [cmd], {async: typeof IS_ASYNCIFY !== "undefined" && /^go\b/.test(cmd)});
             ///NOTE: The engine must be fully initialized before we can close the Pthreads. so we have to check this here, not in onmessage.sendCommand
             if (cmd === "quit") {
                 /// Close the Pthreads.
@@ -114,27 +113,18 @@ if (typeof self !== "undefined" && self.location.hash.split(",")[1] === "worker"
                     process.exit();
                 } catch (e) {}
             }
-            return true;
-        }
-        
-        function processQueue()
-        {
-            while (queue.length && (!engine._isSearching || !engine._isSearching())) {
-                sendCommand(queue.shift());
-            }
+            return result;
         }
         
         function processCommand(cmd)
         {
-            cmd = cmd.trim();
-            /// Certain commands need to be blocked.
-            if (cmd.substring(0, 2) === "go" || cmd.substring(0, 9) === "setoption") {
-                queue.push(cmd);
-            } else {
-                sendCommand(cmd);
-            }
-            processQueue();
+            commandQueue.processCommand(cmd);
         }
+
+        commandQueue = createCommandQueue(sendCommand, function isSearching()
+        {
+            return Boolean(engine._isSearching && engine._isSearching());
+        });
         
         function processStartUpQueue()
         {
@@ -160,12 +150,12 @@ if (typeof self !== "undefined" && self.location.hash.split(",")[1] === "worker"
             }
             
             if (typeof IS_ASYNCIFY === "undefined") {
-                engine.onDoneSearching = processQueue;
+                engine.onDoneSearching = commandQueue.onSearchDone;
             } else {
                 engine.onDoneSearching = function ()
                 {
                     /// The delay is only necessary for the single-threaded engine.
-                    setTimeout(processQueue, 1);
+                    setTimeout(commandQueue.onSearchDone, 1);
                 };
             }
             engine.processCommand = processCommand;
