@@ -1,7 +1,9 @@
 return Stockfish;
 }
 
-if (typeof self !== "undefined" && self.location.hash.split(",")[1] === "worker" || typeof global !== "undefined" && Object.prototype.toString.call(global.process) === "[object process]" && !require("worker_threads").isMainThread) {
+if (typeof self !== "undefined" &&
+        (self.location.hash.split(",")[1] === "worker" || self.name === "em-pthread") ||
+        typeof global !== "undefined" && Object.prototype.toString.call(global.process) === "[object process]" && !require("worker_threads").isMainThread) {
     (function ()
     {
         /// Insert worker here
@@ -143,8 +145,11 @@ if (typeof self !== "undefined" && self.location.hash.split(",")[1] === "worker"
             }());
         }
         
-        function checkIfReady()
+        function checkIfReady(initializedEngine)
         {
+            // Modern Emscripten resolves the factory promise with a new module
+            // instead of mutating the options object passed to the factory.
+            engine = initializedEngine || engine;
             if (engine._isReady && !engine._isReady()) {
                 return setTimeout(checkIfReady, 10);
             }

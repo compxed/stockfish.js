@@ -74,7 +74,7 @@ required by UCI.
 
 You only need to compile the engine if you want to make changes to the engine itself.
 
-In order to compile the engine, you need to have <a href="https://emscripten.org/docs/getting_started/downloads.html">emscripten `3.1.7`</a> installed and in your path. Then you can compile Stockfish.js with the build script: `./build.js`. See `./build.js --help` for details. To build all flavors, run `./build.js --all`.
+In order to compile the engine, you need to have <a href="https://emscripten.org/docs/getting_started/downloads.html">Emscripten `6.0.6`</a> installed and in your path. Then you can compile Stockfish.js with the build script: `./build.js`. See `./build.js --help` for details. To build all flavors, run `./build.js --all`.
 
 ### Thanks
 

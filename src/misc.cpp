@@ -445,6 +445,11 @@ void dbg_clear() {
 // to avoid multiple threads writing at the same time.
 std::ostream& operator<<(std::ostream& os, SyncCout sc) {
 
+#ifdef __EMSCRIPTEN_SINGLE_THREADED__
+    // This build has no concurrent writers and no pthread runtime. Recent
+    // Emscripten versions abort if a std::mutex reaches their pthread stubs.
+    (void) sc;
+#else
     static std::mutex m;
 
     if (sc == IO_LOCK)
@@ -452,6 +457,7 @@ std::ostream& operator<<(std::ostream& os, SyncCout sc) {
 
     if (sc == IO_UNLOCK)
         m.unlock();
+#endif
 
     return os;
 }
@@ -629,7 +635,13 @@ fs::path CommandLine::get_binary_directory(fs::path argv0) {
 }
 
 // Return the working directory
-fs::path CommandLine::get_working_directory() { return std::filesystem::current_path(); }
+fs::path CommandLine::get_working_directory() {
+#ifdef __EMSCRIPTEN__
+    return {};
+#else
+    return std::filesystem::current_path();
+#endif
+}
 
 
 // On Windows, tell the console to use UTF8 encoding

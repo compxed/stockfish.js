@@ -57,7 +57,12 @@ Thread::Thread(Search::SharedState&                    sharedState,
     totalNuma(totalNumaCount),
     nthreads(sharedState.options["Threads"]),
     stdThread(
-      create_native_thread(NativeThreadOptions{}.setLargeStack(true), &Thread::idle_loop, this)) {
+#ifdef __EMSCRIPTEN_SINGLE_THREADED__
+      NativeThread{}
+#else
+      create_native_thread(NativeThreadOptions{}.setLargeStack(true), &Thread::idle_loop, this)
+#endif
+        ) {
 
 #ifndef __EMSCRIPTEN__ ///NOTE: This is to fix changing Threads count via the "setoption" UCI command.
     if (!stdThread.joinable())
@@ -92,9 +97,9 @@ Thread::~Thread() {
 
     assert(!searching);
 
+#ifndef __EMSCRIPTEN_SINGLE_THREADED__
     exit = true;
     start_searching();
-#ifndef __EMSCRIPTEN_SINGLE_THREADED__
     stdThread.join();
 #endif
 }
