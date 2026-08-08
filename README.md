@@ -90,6 +90,15 @@ worker.postMessage("go depth 10");
 
 The `.js` file expects the matching `.wasm` file to sit next to it, and both files must be served with the correct MIME types (`text/javascript` and `application/wasm`). The `lite single-threaded` engine works on any static host with no special configuration.
 
+#### Rapid live-analysis updates
+
+The generated worker serializes commands that change engine state. If a client
+sends positions faster than the active search can stop, pending `position` and
+`go` commands are coalesced so only the newest analysis starts. Configuration
+commands retain FIFO order, and `isready` remains behind any earlier queued
+changes. A standalone `isready` still pings an active search immediately, as
+required by UCI.
+
 ### The loadEngine abstraction
 
 `examples/loadEngine.js` is a small abstraction layer that works in both Node.js and the browser. It queues commands, matches output back to the command that produced it, streams `info` lines, reports engine download progress, and works with any UCI compatible engine, including native binaries.
