@@ -19,6 +19,9 @@ ifeq ($(ASMJS),yes)
 	sse41 = no
 else
 	EM_CXXFLAGS += -msimd128
+	ifeq ($(WASM_RELAXED_SIMD),yes)
+		EM_CXXFLAGS += -mrelaxed-simd
+	endif
 	# CPU settings
 	popcnt = yes
 	sse = yes
