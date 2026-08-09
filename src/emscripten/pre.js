@@ -1,9 +1,14 @@
 
-/// Node 18+ exposes a global fetch(), but Emscripten 3.1.7 may try to use it
-/// with a local filesystem path. Provide the local binary explicitly instead
-/// of disabling fetch or installing an XMLHttpRequest polyfill globally.
-if (typeof global !== "undefined" &&
-        Object.prototype.toString.call(global.process) === "[object process]" &&
+/// Node 18+ exposes fetch(), but browser-oriented Emscripten output may try to
+/// use it with a local filesystem path. Provide the local binary without
+/// changing globals.
+if (typeof process === "object" &&
+        process !== null &&
+        typeof process.versions === "object" &&
+        process.versions !== null &&
+        typeof process.versions.node === "string" &&
+        typeof require === "function" &&
+        typeof fetch === "function" &&
         typeof Module["wasmBinary"] === "undefined" &&
         typeof __filename === "string") {
     (function loadNodeWasmBinary()
