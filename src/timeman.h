@@ -20,6 +20,7 @@
 #define TIMEMAN_H_INCLUDED
 
 
+#include <algorithm>
 #include <limits>
 
 #include "misc.h"
@@ -49,7 +50,11 @@ class TimeManagement {
     TimePoint elapsed(FUNC nodes) const {
         return useNodesTime ? TimePoint(nodes()) : elapsed_time();
     }
+#ifndef STOCKFISH_JS
     TimePoint elapsed_time() const { return now() - startTime; };
+#else
+    TimePoint elapsed_time() const { return std::max(now() - startTime, TimePoint(1)); };
+#endif
 
     void clear();
     void advance_nodes_time(i64 nodes);

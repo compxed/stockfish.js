@@ -41,7 +41,11 @@ class UCIEngine {
    public:
     UCIEngine(CommandLine cli);
 
+#ifdef STOCKFISH_JS
+    void process_command(std::string cmd);
+#else
     void loop();
+#endif
 
     static int         to_cp(Value v, const Position& pos);
     static std::string format_score(const Score& s);

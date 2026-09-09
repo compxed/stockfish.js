@@ -486,6 +486,10 @@ endif
 endif
 endif
 
+ifeq ($(STOCKFISH_JS),yes)
+include emscripten/wasm-makefile.mk
+endif
+
 
 ### ==========================================================================
 ### Section 3. Low-level Configuration
@@ -501,6 +505,10 @@ endif
 CXXFLAGS = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
 DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17
 LDFLAGS = $(ENV_LDFLAGS) $(EXTRALDFLAGS)
+
+ifneq ($(ENGINE_VERSION),)
+	CXXFLAGS += -D__ENGINE_VERSION__=\"$(ENGINE_VERSION)\"
+endif
 
 ifeq ($(COMP),)
 	COMP=gcc
@@ -888,10 +896,12 @@ ifeq ($(lsx),yes)
 endif
 
 ifeq ($(arch),wasm32)
+	ifneq ($(STOCKFISH_JS),yes)
 	CXXFLAGS += -pthread -msimd128 -DUSE_POPCNT -DNNUE_EMBEDDING_OFF -DUSE_SLOPPY_ATOMICS
 	LDFLAGS += -pthread -sINITIAL_MEMORY=64MB -sALLOW_MEMORY_GROWTH -sSTACK_SIZE=3MB
 	ifeq ($(relaxedsimd),yes)
 		CXXFLAGS += -mrelaxed-simd
+	endif
 	endif
 endif
 

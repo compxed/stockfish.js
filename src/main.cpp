@@ -28,6 +28,11 @@
 
 using namespace Stockfish;
 
+#ifdef STOCKFISH_JS
+UCIEngine* uciP = nullptr;
+bool       ready = false;
+#endif
+
 #ifdef UNIVERSAL_BINARY
 namespace Stockfish {
 
@@ -43,14 +48,23 @@ int main(int argc, char* argv[]) {
     Position::init();
 
     auto cli = CommandLine(argc, argv);
+#ifndef STOCKFISH_JS
     auto uci = std::make_unique<UCIEngine>(std::move(cli));
-
     Tune::init(uci->engine_options());
-
     uci->loop();
+#else
+    uciP = new UCIEngine(std::move(cli));
+    Tune::init(uciP->engine_options());
+    ready = true;
+#endif
 
     return 0;
 }
+
+#ifdef STOCKFISH_JS
+extern "C" void command(const char* cmd) { uciP->process_command(cmd); }
+extern "C" bool isReady() { return ready; }
+#endif
 
 #ifdef UNIVERSAL_BINARY
 }  // namespace Stockfish

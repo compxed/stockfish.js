@@ -50,6 +50,10 @@
 #include "uci.h"
 #include "ucioption.h"
 
+#ifdef __EMSCRIPTEN_SINGLE_THREADED__
+    #include <emscripten.h>
+#endif
+
 namespace Stockfish {
 
 static constexpr std::array<int, 16> lmrDivisor = {3637, 2787, 2761, 2939, 3171, 3347, 3147, 2762,
@@ -67,6 +71,10 @@ void syzygy_extend_pv(const OptionsMap&            options,
 using namespace Search;
 
 namespace {
+
+#ifdef __EMSCRIPTEN_SINGLE_THREADED__
+TimePoint lastElapsed;
+#endif
 
 constexpr u64 NODES_LIMIT_OUTPUT = 10'000'000;
 
@@ -190,6 +198,10 @@ void Search::Worker::ensure_network_replicated() {
 
 void Search::Worker::start_searching() {
 
+#ifdef __EMSCRIPTEN_SINGLE_THREADED__
+    lastElapsed = 0;
+#endif
+
     accumulatorStack.reset();
 
     // Non-main threads go directly to iterative_deepening()
@@ -221,8 +233,10 @@ void Search::Worker::start_searching() {
     // the UCI protocol states that we shouldn't print the best move before the
     // GUI sends a "stop" or "ponderhit" command. We therefore simply wait here
     // until the GUI sends one of those commands.
+#ifndef STOCKFISH_JS
     while (!threads.stop && (main_manager()->ponder || limits.infinite))
     {}
+#endif
 
     // Stop the threads if not already stopped (also raise the stop if "ponderhit"
     // just reset threads.ponder).
@@ -2112,6 +2126,14 @@ void SearchManager::check_time(Search::Worker& worker) {
 
     TimePoint elapsed = tm.elapsed([&worker]() { return worker.threads.nodes_searched(); });
     TimePoint tick    = worker.limits.startTime + elapsed;
+
+#ifdef __EMSCRIPTEN_SINGLE_THREADED__
+    if (elapsed - lastElapsed >= 45)
+    {
+        lastElapsed = elapsed;
+        emscripten_sleep(0);
+    }
+#endif
 
     if (tick - lastInfoTime >= 1000)
     {

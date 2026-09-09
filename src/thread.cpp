@@ -57,26 +57,37 @@ Thread::Thread(Search::SharedState&                    sharedState,
     totalNuma(totalNumaCount),
     nthreads(sharedState.options["Threads"]),
     stdThread(
-      create_native_thread(NativeThreadOptions{}.setLargeStack(true), &Thread::idle_loop, this)) {
+#ifdef __EMSCRIPTEN_SINGLE_THREADED__
+      NativeThread{}
+#else
+      create_native_thread(NativeThreadOptions{}.setLargeStack(true), &Thread::idle_loop, this)
+#endif
+        ) {
 
+#ifndef __EMSCRIPTEN_SINGLE_THREADED__
     if (!stdThread.joinable())
     {
         std::cerr << "Failed to create search thread\n";
         std::exit(EXIT_FAILURE);
     }
+#endif
 
+#ifndef __EMSCRIPTEN_SINGLE_THREADED__
     wait_for_search_finished();
 
     run_custom_job([this, &binder, &sharedState, &sm, n]() {
+#endif
         // Use the binder to [maybe] bind the threads to a NUMA node before doing
         // the Worker allocation. Ideally we would also allocate the SearchManager
         // here, but that's minor.
         this->numaAccessToken = binder();
         this->worker          = make_unique_large_page<Search::Worker>(
           sharedState, std::move(sm), n, idxInNuma, totalNuma, this->numaAccessToken);
+#ifndef __EMSCRIPTEN_SINGLE_THREADED__
     });
 
     wait_for_search_finished();
+#endif
 }
 
 
@@ -88,7 +99,9 @@ Thread::~Thread() {
 
     exit = true;
     start_searching();
+#ifndef __EMSCRIPTEN_SINGLE_THREADED__
     stdThread.join();
+#endif
 }
 
 // Wakes up the thread that will start the search
@@ -106,12 +119,17 @@ void Thread::clear_worker() {
 // Blocks on the condition variable until the thread has finished searching
 void Thread::wait_for_search_finished() {
 
+#ifndef __EMSCRIPTEN_SINGLE_THREADED__
     std::unique_lock<std::mutex> lk(mutex);
     cv.wait(lk, [&] { return !searching; });
+#endif
 }
 
 // Launching a function in the thread
 void Thread::run_custom_job(std::function<void()> f) {
+#ifdef __EMSCRIPTEN_SINGLE_THREADED__
+    f();
+#else
     {
         std::unique_lock<std::mutex> lk(mutex);
         cv.wait(lk, [&] { return !searching; });
@@ -119,6 +137,7 @@ void Thread::run_custom_job(std::function<void()> f) {
         searching = true;
     }
     cv.notify_one();
+#endif
 }
 
 void Thread::ensure_network_replicated() { worker->ensure_network_replicated(); }
@@ -180,8 +199,12 @@ void ThreadPool::set(const NumaConfig&                           numaConfig,
         // This is undesirable, and so the default behaviour (i.e. when the user does not
         // change the NumaConfig UCI setting) is to not bind the threads to processors
         // unless we know for sure that we span NUMA nodes and replication is required.
-        const std::string numaPolicy(sharedState.options["NumaPolicy"]);
-        const bool        doBindThreads = [&]() {
+        const bool doBindThreads = [&]() {
+#ifdef __EMSCRIPTEN__
+            // WebAssembly workers cannot be pinned to native NUMA nodes.
+            return false;
+#else
+            const std::string numaPolicy(sharedState.options["NumaPolicy"]);
             if (numaPolicy == "none")
                 return false;
 
@@ -190,6 +213,7 @@ void ThreadPool::set(const NumaConfig&                           numaConfig,
 
             // numaPolicy == "system", or explicitly set by the user
             return true;
+#endif
         }();
 
         std::map<NumaIndex, usize> counts;

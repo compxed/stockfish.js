@@ -3,7 +3,7 @@ EXE = stockfish.js
 COMP = em++
 CXX = em++
 comp = clang
-arch = wasm
+arch = wasm32
 bits = 64
 SUPPORTED_ARCH=true
 WASM_STACK_SIZE_SETTING ?= STACK_SIZE
@@ -12,6 +12,7 @@ WASM_STACK_SIZE_SETTING ?= STACK_SIZE
 # not let Stockfish's native Darwin settings pass -arch wasm,
 # -mmacosx-version-min, or -mdynamic-no-pic to Emscripten.
 KERNEL := Emscripten
+TARGET_KERNEL := Emscripten
 
 ifeq ($(ASMJS),yes)
 	EM_LDFLAGS  += -s WASM=0
@@ -20,14 +21,13 @@ ifeq ($(ASMJS),yes)
 	sse2 = no
 	ssse3 = no
 	sse41 = no
-	EM_LDFLAGS += --memory-init-file 0
 else
 	EM_CXXFLAGS += -msimd128
-	ifeq ($(WASM_RELAXED_SIMD),yes)
-		EM_CXXFLAGS += -mrelaxed-simd -DSTOCKFISH_WASM_RELAXED_SIMD
+	ifeq ($(relaxedsimd),yes)
+		EM_CXXFLAGS += -mrelaxed-simd
 	endif
 	# CPU settings
-	popcnt = yes
+	popcnt = no
 	sse = yes
 	sse2 = yes
 	ssse3 = yes
@@ -36,8 +36,7 @@ endif
 
 
 # Compiler flags
-#EM_CXXFLAGS += -DUSE_POPCNT
-EM_CXXFLAGS += -DPOSIXALIGNEDALLOC
+EM_CXXFLAGS += -DSTOCKFISH_JS -DUSE_POPCNT -DUSE_SLOPPY_ATOMICS -DPOSIXALIGNEDALLOC
 
 ifeq ($(WASM_DEBUG),yes)
 	#EM_CXXFLAGS += -g3 -gsource-map --source-map-base=src/ -s SAFE_HEAP=1 -s ASSERTIONS=1
@@ -48,9 +47,6 @@ ifeq ($(WASM_DEBUG),yes)
 	# -fsanitize=undefined is currently breaking the large build
 	#EM_CXXFLAGS  += -fsanitize=undefined
 	#EM_LDFLAGS  += -fsanitize=undefined
-	ifneq ($(WASM_SINGLE_THREADED),yes)
-		EM_CXXFLAGS += -s USE_PTHREADS=1
-	endif
 	EM_LDFLAGS  += -s NO_FILESYSTEM=0
 else
 	EM_LDFLAGS  += --closure 1
@@ -104,7 +100,6 @@ EM_LDFLAGS  += -s $(WASM_STACK_SIZE_SETTING)=8388608
 
 ifeq ($(WASM_SINGLE_THREADED),yes)
 	EM_CXXFLAGS += -D__EMSCRIPTEN_SINGLE_THREADED__
-	EM_LDFLAGS  += -s USE_PTHREADS=0
 	#EM_LDFLAGS  += --extern-post-js emscripten/extern-post-single.js
 	#EM_LDFLAGS += -s EXPORTED_FUNCTIONS="['_stop', '_ponderhit', '_main']"
 	# Add a second pre-js file.
@@ -114,10 +109,11 @@ ifeq ($(WASM_SINGLE_THREADED),yes)
 	EM_LDFLAGS  += -s EXPORTED_FUNCTIONS="['_main','_command','_isReady','_isSearching']"
 	EM_LDFLAGS  += --extern-pre-js emscripten/extern-pre-async.js
 else
+	EM_CXXFLAGS += -pthread
+	EM_LDFLAGS  += -pthread
 	EM_LDFLAGS  += -s EXPORTED_FUNCTIONS="['_main','_command','_isReady','_isSearching']"
 	#EM_LDFLAGS  += --extern-post-js emscripten/extern-post.js
 	EM_LDFLAGS  += -s PROXY_TO_PTHREAD
-	EM_LDFLAGS  += -s USE_PTHREADS=1
 endif
 
 

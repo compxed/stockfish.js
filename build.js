@@ -294,17 +294,11 @@ function getNetPaths()
     var match;
     var nets = [];
     
-    match = code.match(/\#define EvalFileDefaultNameBig "([^"]+)"/);
+    match = code.match(/\#define EvalFileDefaultName "([^"]+)"/);
     if (match) {
-        nets.push({path: match[1], type: "Big"});
+        nets.push({path: match[1], type: ""});
     } else {
-        console.error("Cannot find EvalFileDefaultNameBig path");
-    }
-    match = code.match(/\#define EvalFileDefaultNameSmall "([^"]*)"/);
-    if (match) {
-        nets.push({path: match[1], type: "Small"});
-    } else {
-        console.error("Cannot find EvalFileDefaultNameSmall path");
+        console.error("Cannot find EvalFileDefaultName path");
     }
     
     return nets;
@@ -363,7 +357,6 @@ function embedNet(outputPath, net)
     
     fs.appendFileSync(outputPath, out + "\";\n" +
         "extern const unsigned int " + netVarBase + "Size = " + len + ";\n" +
-        "extern const unsigned char* const " + netVarBase + "End = &" + netVarBase + "Data[" + len + "];" + /// Oddly, Stockfish seems to never actually use this variable.
         "\n\n");
 }
 
@@ -619,6 +612,12 @@ if (params["wasm-debug"]) { /// alias
     params["debug-wasm"] = params["wasm-debug"];
 }
 
+if ((params.lite || params["ultra-lite"]) &&
+        !params.help && !params["help-all"] && !params.h) {
+    console.error("Stockfish 19 uses the SFNNv16 network and has no compatible lite network");
+    process.exit(1);
+}
+
 if (params.debug) {
     if (buildWithEmscripten) {
         params["debug-wasm"] = true;
@@ -637,16 +636,25 @@ if (params.arch) {
         process.exit(1);
     }
     
-    args.push("ARCH=" + params.arch);
-    if (params.arch === "wasm") {
+    if (params.arch === "wasm" || params.arch === "wasm32" ||
+            params.arch === "wasm32-relaxed-simd") {
         buildWithEmscripten = true;
+        if (params.arch === "wasm32-relaxed-simd") {
+            params["relaxed-simd"] = true;
+        }
+        params.arch = "wasm";
+        args.push("ARCH=" + (params["relaxed-simd"] ? "wasm32-relaxed-simd" : "wasm32"));
+        args.push("STOCKFISH_JS=yes");
+    } else {
+        args.push("ARCH=" + params.arch);
     }
 } else if (params.b || params.bin) {
     determineBestArch()
 } else {
     buildWithEmscripten = true;
     params.arch = "wasm";
-    args.push("ARCH=wasm");
+    args.push("ARCH=" + (params["relaxed-simd"] ? "wasm32-relaxed-simd" : "wasm32"));
+    args.push("STOCKFISH_JS=yes");
 }
 
 if (buildWithEmscripten) {
@@ -906,7 +914,6 @@ if (params["relaxed-simd"]) {
         console.error("--relaxed-simd requires a WebAssembly build");
         process.exit(1);
     }
-    args.push("WASM_RELAXED_SIMD=yes");
     // Keep portable and relaxed artifacts side by side unless the caller
     // explicitly chose a basename.
     if (typeof params.basename !== "string") {
@@ -953,7 +960,7 @@ if (params["ultra-lite"]) {
 wasmEmbeddedNetsPath = p.join(srcPath, "emscripten", wasmEmbeddedNetsPath);
 
 if (buildWithEmscripten && !params["keep-syzygy"]) {
-    args.push("NO_SYZYGY=yes");
+    args.push("syzygy=no");
 }
 
 args.push("ENGINE_VERSION=\"" + getVersion() + "\"");

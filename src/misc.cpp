@@ -54,7 +54,11 @@ namespace fs = std::filesystem;
 namespace {
 
 // Version number or dev.
+#ifndef __ENGINE_VERSION__
 constexpr std::string_view version = "19";
+#else
+constexpr std::string_view version = __ENGINE_VERSION__;
+#endif
 
 // Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 // cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -142,6 +146,7 @@ std::string engine_version_info() {
     std::stringstream ss;
     ss << "Stockfish " << version << std::setfill('0');
 
+#ifndef __ENGINE_VERSION__
     if constexpr (version == "dev")
     {
         ss << "-";
@@ -170,6 +175,7 @@ std::string engine_version_info() {
         ss << "nogit";
 #endif
     }
+#endif
 
     return ss.str();
 }

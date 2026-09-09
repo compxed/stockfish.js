@@ -29,9 +29,9 @@ async function testDefaultSelection()
 
     assert.strictEqual(fast.id, "lite-threaded-relaxed");
     assert.strictEqual(fast.js,
-        "https://example.test/engines/stockfish-18-lite-relaxed.js");
+        "https://example.test/engines/stockfish-19-lite-relaxed.js");
     assert.strictEqual(fast.wasm,
-        "https://example.test/engines/stockfish-18-lite-relaxed.wasm");
+        "https://example.test/engines/stockfish-19-lite-relaxed.wasm");
     assert.strictEqual(portable.id, "lite-single");
 }
 
@@ -42,8 +42,8 @@ async function testRelativeBaseUrl()
         features: features(),
     });
 
-    assert.strictEqual(selected.js, "./engines/stockfish-18-lite-single.js");
-    assert.strictEqual(selected.wasm, "./engines/stockfish-18-lite-single.wasm");
+    assert.strictEqual(selected.js, "./engines/stockfish-19-lite-single.js");
+    assert.strictEqual(selected.wasm, "./engines/stockfish-19-lite-single.wasm");
 }
 
 async function testExactRelaxedInstructionProbe()

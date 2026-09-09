@@ -42,6 +42,10 @@
 #include "types.h"
 #include "ucioption.h"
 
+#ifdef STOCKFISH_JS
+    #include <emscripten.h>
+#endif
+
 namespace Stockfish {
 
 using Time = std::chrono::steady_clock;
@@ -91,6 +95,12 @@ void UCIEngine::init_search_update_listeners() {
     engine.set_on_verify_network([](const auto& s) { print_info_string(s); });
 }
 
+#ifdef STOCKFISH_JS
+bool searching = false;
+
+void UCIEngine::process_command(std::string cmd) {
+    std::string token;
+#else
 void UCIEngine::loop() {
     set_console_utf8();
     std::string token, cmd;
@@ -103,6 +113,7 @@ void UCIEngine::loop() {
         if (cli.argc == 1
             && !getline(std::cin, cmd))  // Wait for an input or an end-of-file (EOF) indication
             cmd = "quit";
+#endif
 
         currentCmd = cmd;
         std::istringstream is(cmd);
@@ -152,10 +163,12 @@ void UCIEngine::loop() {
                 terminate_on_critical_error(err->what());
             }
         }
+#ifndef STOCKFISH_JS
         else if (token == "bench")
             bench(is);
         else if (token == BenchmarkCommand)
             benchmark(is);
+#endif
         else if (token == "d")
             sync_cout << engine.visualize() << sync_endl;
         else if (token == "eval")
@@ -185,7 +198,9 @@ void UCIEngine::loop() {
             sync_cout << "Unknown command: '" << cmd << "'. Type help for more information."
                       << sync_endl;
 
+#ifndef STOCKFISH_JS
     } while (token != "quit" && cli.argc <= 1);  // The command-line arguments are one-shot
+#endif
 }
 
 Search::LimitsType UCIEngine::parse_limits(std::istream& is) {
@@ -242,7 +257,12 @@ void UCIEngine::go(std::istringstream& is) {
     if (limits.perft)
         perft(limits);
     else
+    {
+#ifdef STOCKFISH_JS
+        searching = true;
+#endif
         engine.go(limits);
+    }
 }
 
 void UCIEngine::bench(std::istream& args) {
@@ -692,7 +712,18 @@ void UCIEngine::on_bestmove(std::string_view bestmove, std::string_view ponder) 
     if (!ponder.empty())
         std::cout << " ponder " << ponder;
     std::cout << sync_endl;
+#ifdef STOCKFISH_JS
+    searching = false;
+    MAIN_THREAD_ASYNC_EM_ASM({
+        if (Module["onDoneSearching"])
+            Module["onDoneSearching"]();
+    });
+#endif
 }
+
+#ifdef STOCKFISH_JS
+extern "C" bool isSearching() { return searching; }
+#endif
 
 void UCIEngine::terminate_on_critical_error(const std::string& message) {
     sync_cout << "info string CRITICAL ERROR: Command `" << currentCmd

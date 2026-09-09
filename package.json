@@ -1,8 +1,8 @@
 {
   "name": "stockfish",
   "description": "The Stockfish chess engine in Web Assembly (WASM)",
-  "version": "18.0.8",
-  "buildVersion": "18",
+  "version": "19.0.0",
+  "buildVersion": "19",
   "author": {
     "name": "Nathan Rugg",
     "email": "nmrugg@gmail.com"

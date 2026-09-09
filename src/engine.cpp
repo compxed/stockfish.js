@@ -66,6 +66,7 @@ Engine::Engine(std::optional<std::filesystem::path> path) :
 
     pos.set(StartFEN, false, &states->back());
 
+#ifndef STOCKFISH_JS
     options.add(  //
       "Debug Log File", Option("", [](const Option& o) {
           start_logger(path_from_utf8(std::string(o)));
@@ -79,12 +80,24 @@ Engine::Engine(std::optional<std::filesystem::path> path) :
           return numa_config_information_as_string() + "\n"
                + thread_allocation_information_as_string();
       }));
+#endif
 
     options.add(  //
+#ifdef __EMSCRIPTEN_SINGLE_THREADED__
+      "Threads", Option(1, 1, 1, [](const Option&) {
+          return std::nullopt;
+      }));
+#elif defined(STOCKFISH_JS)
+      "Threads", Option(1, 1, 32, [this](const Option&) {
+          resize_threads();
+          return std::nullopt;
+      }));
+#else
       "Threads", Option(1, 1, MaxThreads, [this](const Option&) {
           resize_threads();
           return thread_allocation_information_as_string();
       }));
+#endif
 
     options.add(  //
       "Hash", Option(16, 1, MaxHashMB, [this](const Option& o) {

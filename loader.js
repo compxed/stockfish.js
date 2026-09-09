@@ -100,7 +100,7 @@
     function defaultVariants(options)
     {
         var flavor = options.flavor === "full" ? "full" : "lite";
-        var version = options.version || "18";
+        var version = options.version || "19";
         var stem = "stockfish-" + version + (flavor === "lite" ? "-lite" : "");
         var variants = [];
 
