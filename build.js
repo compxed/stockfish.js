@@ -14,12 +14,15 @@ var params = getParams({booleans: [
     "debug", "do-not-verify-nets",
     
 ]});
-var args = ["-j", require("os").cpus().length];
+var os = require("os");
+var args = ["-j", os.cpus().length];
 var fs = require("fs");
 var p = require("path");
-var srcPath = p.join(__dirname, "src");
+var originalSrcPath = p.join(__dirname, "src");
+var srcPath = originalSrcPath;
 var stockfishPath = p.join(srcPath, "stockfish");
 var stockfishWASMPath = p.join(srcPath, "stockfish.wasm");
+var temporaryBuildRoot;
 var wasmEmbeddedNetsPath;
 var data;
 var workerData;
@@ -271,26 +274,11 @@ function checkEmscriptenVersion()
 
 function ensureNets()
 {
-    var args = ["net"];
-    if (params.lite) {
-        args.push("LITE_NET=yes");
-    } else if (params["ultra-lite"]) {
-        args.push("ULTRA_LITE_NET=yes");
-    }
-    
-    execFileSync(params.make, args, {cwd: srcPath});
+    execFileSync(params.make, ["net"], {cwd: srcPath});
 }
 function getNetPaths()
 {
-    var filename;
-    if (params["ultra-lite"]) {
-        filename = "ultra_lite_nets.h";
-    } else if (params.lite) {
-        filename = "lite_nets.h";
-    } else {
-        filename = "evaluate.h";
-    }
-    var code = fs.readFileSync(p.join(srcPath, filename), "utf8");
+    var code = fs.readFileSync(p.join(srcPath, "evaluate.h"), "utf8");
     var match;
     var nets = [];
     
@@ -316,10 +304,8 @@ function alreadyEmbedded(nets)
     }
     
     for (i = nets.length - 1; i >= 0; --i) {
-        if (!params.lite || params["ultra-lite"] || nets[i].type !== "small") {
-            if (data.indexOf(nets[i].path) === -1) {
-                return false;
-            }
+        if (data.indexOf(nets[i].path) === -1) {
+            return false;
         }
     }
     return true;
@@ -548,9 +534,7 @@ function getVersion()
 {
     var version = params.version === "string" ? params.version : stockfishVersionNumber;
     if (buildWithEmscripten) {
-        if (params["ultra-lite"]) {
-            version += " Ultra Lite";
-        } else if (params.lite) {
+        if (params.lite) {
             version += " Lite";
         }
         if (!params["asm-js"]) {
@@ -608,13 +592,87 @@ function moveBuiltFiles()
     }
 }
 
+function refreshSourcePaths()
+{
+    stockfishPath = p.join(srcPath, "stockfish");
+    stockfishWASMPath = p.join(srcPath, "stockfish.wasm");
+}
+
+function shouldCopySource(sourcePath)
+{
+    var basename = p.basename(sourcePath);
+    var relativePath = p.relative(originalSrcPath, sourcePath);
+    var isTopLevel = p.dirname(relativePath) === ".";
+
+    if (!relativePath) {
+        return true;
+    }
+    if (basename === ".depend" || /^\.build/.test(basename) || /\.o$/.test(basename) ||
+            /^nn-[0-9a-f]+\.nnue$/i.test(basename) || /^wasm_embedded_.*\.h$/.test(basename)) {
+        return false;
+    }
+    if (isTopLevel && (basename === "stockfish" || basename === "stockfish.exe" ||
+            /^stockfish.*\.(?:js|wasm|wasm\.map)$/.test(basename))) {
+        return false;
+    }
+    return true;
+}
+
+function prepareLiteSource()
+{
+    var patchPath = p.join(__dirname, "patches", "stockfish-19-smallnet.patch");
+    var scriptsPath;
+    var patchResult;
+
+    temporaryBuildRoot = fs.mkdtempSync(p.join(os.tmpdir(), "stockfish-js-lite-"));
+    srcPath = p.join(temporaryBuildRoot, "src");
+    fs.cpSync(originalSrcPath, srcPath, {recursive: true, filter: shouldCopySource});
+
+    // Stockfish's Makefile resolves its helper scripts relative to the source tree.
+    scriptsPath = p.join(temporaryBuildRoot, "scripts");
+    fs.cpSync(p.join(__dirname, "scripts"), scriptsPath, {recursive: true});
+
+    patchResult = spawnSync("git", ["apply", "--whitespace=nowarn", patchPath], {
+        cwd: temporaryBuildRoot,
+        encoding: "utf8"
+    });
+    if (patchResult.status !== 0) {
+        throw new Error("Unable to apply the Stockfish 19 smallnet patch:\n" +
+            (patchResult.stderr || patchResult.stdout || "git apply failed"));
+    }
+    refreshSourcePaths();
+}
+
+function publishTemporaryBuild(outputPath)
+{
+    var publishedFiles = [];
+
+    fs.mkdirSync(outputPath, {recursive: true});
+    builtFiles.forEach(function (sourcePath)
+    {
+        var destinationPath = p.join(outputPath, p.basename(sourcePath));
+        fs.rmSync(destinationPath, {force: true});
+        fs.copyFileSync(sourcePath, destinationPath);
+        fs.chmodSync(destinationPath, fs.statSync(sourcePath).mode);
+        publishedFiles.push(destinationPath);
+    });
+    builtFiles = publishedFiles;
+}
+
+process.once("exit", function cleanupTemporaryBuild()
+{
+    if (temporaryBuildRoot) {
+        fs.rmSync(temporaryBuildRoot, {recursive: true, force: true});
+    }
+});
+
 if (params["wasm-debug"]) { /// alias
     params["debug-wasm"] = params["wasm-debug"];
 }
 
-if ((params.lite || params["ultra-lite"]) &&
+if (params["ultra-lite"] &&
         !params.help && !params["help-all"] && !params.h) {
-    console.error("Stockfish 19 uses the SFNNv16 network and has no compatible lite network");
+    console.error("--ultra-lite is not available for Stockfish 19; use --lite instead");
     process.exit(1);
 }
 
@@ -628,6 +686,10 @@ if (params.debug) {
 
 if (!params.make) {
     params.make = "make";
+}
+
+if (params["asm-js"]) {
+    params.lite = true;
 }
 
 if (params.arch) {
@@ -666,11 +728,6 @@ if (buildWithEmscripten) {
 
 if (params["asm-js"]) {
     args.push("ASMJS=yes");
-    if (!params.lite) {
-        if (params["lite"] !== "0" && params["lite"] !== "false") {
-            params["lite"] = true;
-        }
-    }
     params["single-threaded"] = true;
 }
 
@@ -733,7 +790,6 @@ if (params.help || params["help-all"] || params.h) {
     console.log("  " + highlight("--skip-standard") + "    Do not build standard, multi-threaded engine with " + highlight("--all"));
     console.log("  " + highlight("--strict-em-check") + "  Fail if Emscripten version does not match expected version (" + note(expectedEmscripten) + ")");
     console.log("  " + highlight("--split") + "=" + note("count") + "      Split up WASM binary how many parts");
-    console.log("  " + highlight("--ultra-lite") + "       Embed even smaller net file");
     console.log("  " + highlight("-v --verbose") + "       Print extra info");
     console.log("  " + highlight("--version") + "          Specify Stockfish version number (default: " + note(stockfishVersionNumber) + ")");
     
@@ -846,6 +902,10 @@ if (params.all) {
     }());
 }
 
+if (params.lite) {
+    prepareLiteSource();
+}
+
 if (typeof params.basename === "string") {
     basename = params.basename.replace(/\.(?:js|wasm)$/i, "");
 }
@@ -881,9 +941,6 @@ if (params["no-minify"]) {
 if (!basename && params["asm-js"]) {
     basename = "stockfish-" + stockfishVersionNumber + "-asm";
 }
-if (!basename && params["ultra-lite"] && params["single-threaded"]) {
-    basename = "stockfish-" + stockfishVersionNumber + "-ultra-lite-single";
-}
 if (!basename && params.lite && params["single-threaded"]) {
     basename = "stockfish-" + stockfishVersionNumber + "-lite-single";
 }
@@ -894,13 +951,6 @@ if (params.lite) {
         basename = "stockfish-" + stockfishVersionNumber + "-lite";
     }
 }
-if (params["ultra-lite"]) {
-    args.push("ULTRA_LITE_NET=yes");
-    if (!basename) {
-        basename = "stockfish-" + stockfishVersionNumber + "-ultra-lite";
-    }
-}
-
 if (params["single-threaded"]) {
     buildingSingleThreaded = true;
     args.push("WASM_SINGLE_THREADED=yes");
@@ -950,14 +1000,7 @@ if (String(params.version).toLowerCase() === "hash") {
 }
 
 
-if (params["ultra-lite"]) {
-    wasmEmbeddedNetsPath = "wasm_embedded_ultra_lite_network.h";
-} else if (params.lite) {
-    wasmEmbeddedNetsPath = "wasm_embedded_lite_network.h";
-} else {
-    wasmEmbeddedNetsPath = "wasm_embedded_networks.h";
-}
-wasmEmbeddedNetsPath = p.join(srcPath, "emscripten", wasmEmbeddedNetsPath);
+wasmEmbeddedNetsPath = p.join(srcPath, "emscripten", "wasm_embedded_networks.h");
 
 if (buildWithEmscripten && !params["keep-syzygy"]) {
     args.push("syzygy=no");
@@ -1005,7 +1048,9 @@ if (buildWithEmscripten) {
     }
 }
 
-if (params["output-dir"]) {
+if (temporaryBuildRoot) {
+    publishTemporaryBuild(params["output-dir"] || originalSrcPath);
+} else if (params["output-dir"]) {
     moveBuiltFiles();
 }
 

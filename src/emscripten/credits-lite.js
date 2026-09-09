@@ -6,6 +6,9 @@
  * Based on Stockfish (c) T. Romstad, M. Costalba, J. Kiiski, G. Linscott and other contributors.
  * https://github.com/official-stockfish/Stockfish
  *
- * Nets by Linmiao Xu (linrock)
- * https://tests.stockfishchess.org/nns?network_name=nn-9067e33176e
+ * Stockfish 19 smallnet architecture by Chris Bao (sscg13).
+ * https://github.com/lichess-org/stockfish-web/tree/main/patches/sf_19_smallnet
+ *
+ * Network: nn-61e7af4bb97d.nnue
+ * https://tests.stockfishchess.org/api/nn/nn-61e7af4bb97d.nnue
  */
