@@ -13,17 +13,21 @@ var srcDir = p.join(__dirname, "..", "src");
 var binDir = p.join(__dirname, "..", "bin");
 
 var version = require("../package.json").buildVersion;
+var engineMatch = require("./engine-file-matcher")(version);
+var buildScript = p.join(__dirname, "..", "build.js");
 
 try {
     fs.mkdirSync(binDir)
 } catch (e) {}
 
-var engineMatch = new RegExp("^stockfish-" + version + "(-(asm|lite|single|lite-single))?(-[a-f0-9]{7})?(-part-\d+)?\.(js|wasm)$");
-
 console.log(" *");
 console.log(" * Building engines...");
 console.log(" *");
-require("child_process").execFileSync(p.join(__dirname, "..", "build.js"), ["--all", "--strict-em-check"], {stdio: "inherit"});
+require("child_process").execFileSync(buildScript,
+    ["--all", "--strict-em-check"], {stdio: "inherit"});
+require("child_process").execFileSync(buildScript,
+    ["--all", "--strict-em-check", "--relaxed-simd", "--only-lite", "--only-lite-single"],
+    {stdio: "inherit"});
 console.log(" *");
 console.log(" * Finished building engines successfully.");
 console.log(" *");

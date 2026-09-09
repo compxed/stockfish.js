@@ -22,6 +22,11 @@ This edition of Stockfish.js comes in five flavors:
     * Compiled to JavaScript, not WASM. Compatible with every browser that runs JavaScript. Very slow and weak. Larger than the lite WASM engines (≈3MB). This engine should only be used as a last resort.
     * File: [`stockfish-19-asm.js`](https://github.com/nmrugg/stockfish.js/releases/download/v19.0.0/stockfish-19-asm.js)
 
+This fork's package build includes regular-SIMD and relaxed-SIMD lite artifacts
+side by side. Use `loader.js` to select a compatible artifact and retain
+an automatic fallback. The upstream release links above do not include these
+additional variants.
+
 #### Which engine should I use?
 
 It depends on your project, but most likely, you should use the `lite single-threaded` engine because it is fast and does not require any complicated setup. Although the full engine is objectively stronger, the lite engine is still far stronger than any human will ever be, and the full engine is so large that it can be very slow to load, which would cause a poor user experience.
