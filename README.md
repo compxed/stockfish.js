@@ -22,9 +22,9 @@ This edition of Stockfish.js comes in five primary flavors:
     * Compiled from the smallnet source to JavaScript, not WASM. Compatible with runtimes without WebAssembly, but very slow. This engine should only be used as a last resort.
     * File: `stockfish-19-asm.js`
 
-Regular-SIMD and relaxed-SIMD WASM artifacts can be published side by side.
-Use `loader.js` to select the best compatible artifact and retain an automatic
-fallback.
+Published packages include regular-SIMD and relaxed-SIMD smallnet artifacts
+side by side. Use `loader.js` to select the best compatible artifact and retain
+an automatic fallback.
 
 #### Which engine should I use?
 
