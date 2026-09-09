@@ -2,29 +2,37 @@
 
 <a href="https://github.com/nmrugg/stockfish.js">Stockfish.js</a> is a WASM implementation by Nathan Rugg of the <a href="https://github.com/official-stockfish/Stockfish">Stockfish</a> chess engine, for [Chess.com's](https://www.chess.com/analysis) in-browser engine.
 
-Stockfish.js is currently updated to Stockfish 18.
+Stockfish.js is currently updated to [Stockfish 19](https://github.com/official-stockfish/Stockfish/releases/tag/sf_19).
 
-This edition of Stockfish.js comes in five flavors:
+This edition of Stockfish.js comes in five primary flavors:
 
  * The large multi-threaded engine:
-    * This is the strongest version of the engine, but it is very large (>100MB) and will only run in browsers with the proper <a href=https://web.dev/articles/cross-origin-isolation-guide>CORS headers</a> applied.
-    * Files: [`stockfish-18.js`](https://github.com/nmrugg/stockfish.js/releases/download/v18.0.0/stockfish-18.js) & [`stockfish-18.wasm`](https://github.com/nmrugg/stockfish.js/releases/download/v18.0.0/stockfish-18.wasm)
+    * This is the strongest version of the engine, but its SFNNv16 network makes the WASM file about 99MB. Browser threads require a [cross-origin isolated page](https://web.dev/articles/cross-origin-isolation-guide).
+    * Files: `stockfish-19.js` and `stockfish-19.wasm`
  * The large single-threaded engine:
-    * This is also large but will run in browsers without CORS headers; however it cannot use multiple threads via the UCI command `setoption name Threads`.
-    * Files: [`stockfish-18-single.js`](https://github.com/nmrugg/stockfish.js/releases/download/v18.0.0/stockfish-18-single.js) & [`stockfish-18-single.wasm`](https://github.com/nmrugg/stockfish.js/releases/download/v18.0.0/stockfish-18-single.wasm)
+    * This is also large but runs without cross-origin isolation; however it cannot use multiple threads via the UCI command `setoption name Threads`.
+    * Files: `stockfish-19-single.js` and `stockfish-19-single.wasm`
  * The lite multi-threaded engine:
-    * This is the same as the first multi-threaded but much smaller (≈7MB) and quite a bit weaker.
-    * Files: [`stockfish-18-lite.js`](https://github.com/nmrugg/stockfish.js/releases/download/v18.0.0/stockfish-18-lite.js) & [`stockfish-18-lite.wasm`](https://github.com/nmrugg/stockfish.js/releases/download/v18.0.0/stockfish-18-lite.wasm)
+    * This uses the independently tested Stockfish 19 smallnet architecture adopted by Lichess. Its WASM file is about 1.8MB, at the cost of playing strength relative to full Stockfish 19.
+    * Files: `stockfish-19-lite.js` and `stockfish-19-lite.wasm`
  * The lite single-threaded engine:
-    * Same as the first single-threaded engine but much smaller (≈7MB) and quite a bit weaker.
-    * Files: [`stockfish-18-lite-single.js`](https://github.com/nmrugg/stockfish.js/releases/download/v18.0.0/stockfish-18-lite-single.js) & [`stockfish-18-lite-single.wasm`](https://github.com/nmrugg/stockfish.js/releases/download/v18.0.0/stockfish-18-lite-single.wasm)
+    * The smallnet build without browser threads. Its WASM file is about 2MB and it does not require cross-origin isolation.
+    * Files: `stockfish-19-lite-single.js` and `stockfish-19-lite-single.wasm`
  * The ASM-JS engine:
-    * Compiled to JavaScript, not WASM. Compatible with every browser that runs JavaScript. Very slow and weak. Larger than the lite WASM engines (≈10MB). This engine should only be used as a last resort.
-    * File: [`stockfish-18-asm.js`](https://github.com/nmrugg/stockfish.js/releases/download/v18.0.0/stockfish-18-asm.js)
+    * Compiled from the smallnet source to JavaScript, not WASM. Compatible with runtimes without WebAssembly, but very slow. This engine should only be used as a last resort.
+    * File: `stockfish-19-asm.js`
+
+Regular-SIMD and relaxed-SIMD WASM artifacts can be published side by side.
+Use `loader.js` to select the best compatible artifact and retain an automatic
+fallback.
 
 #### Which engine should I use?
 
-It depends on your project, but most likely, you should use the `lite single-threaded` engine because it is fast and does not require any complicated setup. Although the full engine is objectively stronger, the lite engine is still far stronger than any human will ever be, and the full engine is so large that it can be very slow to load, which would cause a poor user experience.
+It depends on your project, but most applications should start with the `lite single-threaded`
+engine because it is small and needs no cross-origin isolation.
+Use a threaded build for longer analysis when you control the response headers,
+and use the full network only when the extra strength justifies its much larger
+download.
 
 The WASM Stockfish engines will run on all modern browsers (e.g., Chrome/Edge/Firefox/Opera/Safari) on supported systems (Windows 10+/macOS 11+/iOS 16+/Linux/Android), as well as currently supported versions of Node.js. For slightly older browsers, see the <a href=../../tree/Stockfish16>Stockfish.js 16 branch</a>. The ASM-JS engine will run in essentially any browser/runtime that supports JavaScript. For an engine that supports chess variants (like 3-check and Crazyhouse), see the <a href=../../tree/Stockfish11>Stockfish.js 11 branch</a>.
 
@@ -108,7 +116,14 @@ You only need to compile the engine if you want to make changes to the engine it
 
 In order to compile the engine, you need to have <a href="https://emscripten.org/docs/getting_started/downloads.html">Emscripten `6.0.6`</a> installed and in your path. Then you can compile Stockfish.js with the build script: `./build.js`. See `./build.js --help` for details. To build all flavors, run `./build.js --all`.
 
-To build a faster variant for browsers that support WebAssembly relaxed SIMD, add `--relaxed-simd`. For example, `./build.js --lite --single-threaded --relaxed-simd` creates `stockfish-18-lite-single-relaxed.js` and its matching WASM file. This build uses the relaxed integer dot-product instruction in the NNUE evaluation path. Applications loading this artifact directly must detect support for that exact instruction and keep the regular SIMD build as a fallback. When `StockfishLoader` is used, it performs this exact probe and fallback automatically.
+`./build.js --lite` applies the versioned smallnet source patch in an isolated
+temporary tree, downloads its matching network, and copies only the finished
+artifacts back. It never changes the primary Stockfish 19 source. The standard
+and smallnet bench signatures are `2497913` and `2793281`, respectively.
+`--ultra-lite` is no longer available because the Stockfish 19 smallnet build is
+already smaller than the former ultra-lite flavor.
+
+To build a faster variant for browsers that support WebAssembly relaxed SIMD, add `--relaxed-simd`. For example, `./build.js --lite --single-threaded --relaxed-simd` creates `stockfish-19-lite-single-relaxed.js` and its matching WASM file. This build uses the relaxed integer dot-product instruction in the NNUE evaluation path. Applications loading this artifact directly must detect support for that exact instruction and keep the regular SIMD build as a fallback. When `StockfishLoader` is used, it performs this exact probe and fallback automatically.
 
 ### Thanks
 

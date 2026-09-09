@@ -18,8 +18,8 @@ Run the comparison from the repository root:
 
 ```sh
 node benchmarks/browser/paired.js \
-  --control-engine /path/to/control/stockfish-18-lite-single.js \
-  --candidate-engine /path/to/candidate/stockfish-18-lite-single.js \
+  --control-engine /path/to/control/stockfish-19-lite-single.js \
+  --candidate-engine /path/to/candidate/stockfish-19-lite-single.js \
   --control-label control \
   --candidate-label candidate \
   --browser chromium \
