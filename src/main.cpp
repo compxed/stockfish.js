@@ -18,8 +18,9 @@
 
 #include <iostream>
 #include <memory>
+#include <utility>
 
-#include "bitboard.h"
+#include "attacks.h"
 #include "misc.h"
 #include "position.h"
 #include "tune.h"
@@ -27,35 +28,34 @@
 
 using namespace Stockfish;
 
-#ifdef __EMSCRIPTEN__
-UCIEngine* uciP; // Create a global pointer to the UCI object
-bool       ready = false;
+#ifdef UNIVERSAL_BINARY
+namespace Stockfish {
+
+int main(int argc, char* argv[]);  // silence 'no previous declaration'
+
+__attribute__((used)) // keep main alive
 #endif
 
 int main(int argc, char* argv[]) {
     std::cout << engine_info() << std::endl;
 
-    Bitboards::init();
+    Attacks::init();
     Position::init();
 
-#ifndef __EMSCRIPTEN__
-    auto uci = std::make_unique<UCIEngine>(argc, argv);
+    auto cli = CommandLine(argc, argv);
+    auto uci = std::make_unique<UCIEngine>(std::move(cli));
 
     Tune::init(uci->engine_options());
 
-    uci.loop();
-#else
-    uciP = new UCIEngine(argc, argv); // initialize the UCI object
-    Tune::init(uciP->engine_options());
-    ready = true;
-#endif
+    uci->loop();
 
     return 0;
 }
 
-#ifdef __EMSCRIPTEN__
-extern "C" void command(const char *cmd) {
-    uciP->process_command(cmd);
-}
-extern "C" bool isReady() { return ready; }
+#ifdef UNIVERSAL_BINARY
+}  // namespace Stockfish
+
+    #ifdef UNIVERSAL_NEEDS_MAIN_SHIM
+int main(int argc, char* argv[]) { return Stockfish::main(argc, argv); }
+    #endif
 #endif

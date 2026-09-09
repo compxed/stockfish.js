@@ -19,14 +19,15 @@
 #ifndef TIMEMAN_H_INCLUDED
 #define TIMEMAN_H_INCLUDED
 
-#include <cstdint>
+
+#include <limits>
 
 #include "misc.h"
 
 namespace Stockfish {
 
 class OptionsMap;
-enum Color : uint8_t;
+enum Color : u8;
 
 namespace Search {
 struct LimitsType;
@@ -48,23 +49,20 @@ class TimeManagement {
     TimePoint elapsed(FUNC nodes) const {
         return useNodesTime ? TimePoint(nodes()) : elapsed_time();
     }
-#ifndef __EMSCRIPTEN__
     TimePoint elapsed_time() const { return now() - startTime; };
-#else
-    //NOTE: WASM has issues with time. See https://github.com/lichess-org/lila-stockfish-web/pull/3#discussion_r1748873352 for a discussion.
-    TimePoint elapsed_time() const { return std::max(now() - startTime, TimePoint(1)); };
-#endif
 
     void clear();
-    void advance_nodes_time(std::int64_t nodes);
+    void advance_nodes_time(i64 nodes);
 
    private:
-    TimePoint startTime;
-    TimePoint optimumTime;
-    TimePoint maximumTime;
+    static constexpr TimePoint NoBound = std::numeric_limits<TimePoint>::max() / 2;
 
-    std::int64_t availableNodes = -1;     // When in 'nodes as time' mode
-    bool         useNodesTime   = false;  // True if we are in 'nodes as time' mode
+    TimePoint startTime;
+    TimePoint optimumTime = NoBound;
+    TimePoint maximumTime = NoBound;
+
+    i64  availableNodes = -1;     // When in 'nodes as time' mode
+    bool useNodesTime   = false;  // True if we are in 'nodes as time' mode
 };
 
 }  // namespace Stockfish
