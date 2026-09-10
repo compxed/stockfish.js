@@ -202,7 +202,11 @@ void TranspositionTable::resize(usize mbSize, ThreadPool& threads) {
 
 // Initializes the entire transposition table to zero, in a multi-threaded way
 void TranspositionTable::clear(ThreadPool& threads) {
-    generation8             = 0;
+    generation8 = 0;
+#ifdef __EMSCRIPTEN__
+    // Browser workers cannot synchronously dispatch and join TT-clear jobs here.
+    std::memset(table, 0, clusterCount * sizeof(Cluster));
+#else
     const usize threadCount = threads.num_threads();
 
     std::vector<usize> threadToNuma = threads.get_bound_thread_to_numa_node();
@@ -233,6 +237,7 @@ void TranspositionTable::clear(ThreadPool& threads) {
 
     for (usize i = 0; i < threadCount; ++i)
         threads.wait_on_thread(i);
+#endif
 }
 
 

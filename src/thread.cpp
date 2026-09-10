@@ -72,7 +72,7 @@ Thread::Thread(Search::SharedState&                    sharedState,
     }
 #endif
 
-#ifndef __EMSCRIPTEN_SINGLE_THREADED__
+#ifndef __EMSCRIPTEN__
     wait_for_search_finished();
 
     run_custom_job([this, &binder, &sharedState, &sm, n]() {
@@ -83,7 +83,7 @@ Thread::Thread(Search::SharedState&                    sharedState,
         this->numaAccessToken = binder();
         this->worker          = make_unique_large_page<Search::Worker>(
           sharedState, std::move(sm), n, idxInNuma, totalNuma, this->numaAccessToken);
-#ifndef __EMSCRIPTEN_SINGLE_THREADED__
+#ifndef __EMSCRIPTEN__
     });
 
     wait_for_search_finished();
@@ -113,7 +113,11 @@ void Thread::start_searching() {
 // Clears the histories for the thread worker (usually before a new game)
 void Thread::clear_worker() {
     assert(worker != nullptr);
+#ifndef __EMSCRIPTEN__
     run_custom_job([this]() { worker->clear(); });
+#else
+    worker->clear();
+#endif
 }
 
 // Blocks on the condition variable until the thread has finished searching
@@ -290,8 +294,10 @@ void ThreadPool::clear() {
     for (auto&& th : threads)
         th->clear_worker();
 
+#ifndef __EMSCRIPTEN__
     for (auto&& th : threads)
         th->wait_for_search_finished();
+#endif
 
     // These two affect the time taken on the first move of a game:
     main_manager()->bestPreviousAverageScore = VALUE_INFINITE;
@@ -360,7 +366,9 @@ void ThreadPool::start_thinking(const OptionsMap&  options,
     // shared since they are read-only.
     for (auto&& th : threads)
     {
+#ifndef __EMSCRIPTEN__
         th->run_custom_job([&]() {
+#endif
             th->worker->limits = limits;
             th->worker->nodes = th->worker->tbHits = th->worker->bestMoveChanges = 0;
             th->worker->nmpMinPly                                                = 0;
@@ -369,11 +377,15 @@ void ThreadPool::start_thinking(const OptionsMap&  options,
             th->worker->rootPos.set(pos.fen(), pos.is_chess960(), &th->worker->rootState);
             th->worker->rootState = setupStates->back();
             th->worker->tbConfig  = tbConfig;
+#ifndef __EMSCRIPTEN__
         });
+#endif
     }
 
+#ifndef __EMSCRIPTEN__
     for (auto&& th : threads)
         th->wait_for_search_finished();
+#endif
 
     main_thread()->start_searching();
 }
