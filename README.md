@@ -13,7 +13,7 @@ This edition of Stockfish.js comes in five primary flavors:
     * This is also large but runs without cross-origin isolation; however it cannot use multiple threads via the UCI command `setoption name Threads`.
     * Files: `stockfish-19-single.js` and `stockfish-19-single.wasm`
  * The lite multi-threaded engine:
-    * This uses the independently tested Stockfish 19 smallnet architecture adopted by Lichess. Its WASM file is about 1.8MB, at the cost of playing strength relative to full Stockfish 19.
+    * This applies the Stockfish 19 smallnet patch used by Lichess. Its WASM file is about 1.8MB, at the cost of playing strength relative to full Stockfish 19.
     * Files: `stockfish-19-lite.js` and `stockfish-19-lite.wasm`
  * The lite single-threaded engine:
     * The smallnet build without browser threads. Its WASM file is about 2MB and it does not require cross-origin isolation.

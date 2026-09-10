@@ -4,6 +4,7 @@
 
 var assert = require("assert");
 var fs = require("fs");
+var os = require("os");
 var p = require("path");
 var spawnSync = require("child_process").spawnSync;
 
@@ -25,5 +26,22 @@ result = spawnSync(process.execPath, ["build.js", "--ultra-lite", "--skip-em-che
 });
 assert.strictEqual(result.status, 1);
 assert.match(result.stderr, /--ultra-lite is not available.*use --lite instead/);
+
+var failureRoot = fs.mkdtempSync(p.join(os.tmpdir(), "stockfish-build-failure-test-"));
+try {
+    fs.mkdirSync(p.join(failureRoot, "src"));
+    fs.copyFileSync(p.join(root, "build.js"), p.join(failureRoot, "build.js"));
+    fs.copyFileSync(p.join(root, "package.json"), p.join(failureRoot, "package.json"));
+
+    result = spawnSync(process.execPath, ["build.js", "--all", "--only-standard",
+        "--skip-em-check", "--silent"], {
+        cwd: failureRoot,
+        encoding: "utf8"
+    });
+    assert.strictEqual(result.status, 1,
+        "--all must propagate the child build's exit status");
+} finally {
+    fs.rmSync(failureRoot, {recursive: true, force: true});
+}
 
 console.log("Stockfish 19 smallnet build tests passed.");

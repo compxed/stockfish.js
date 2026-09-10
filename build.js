@@ -833,6 +833,23 @@ if (params.all) {
                 }
             });
         }
+
+        function runBuild(buildArgs)
+        {
+            var result = spawnSync(process.execPath, buildArgs, {
+                encoding: "utf8",
+                env: process.env,
+                cwd: __dirname,
+                stdio: [0,1,2]
+            });
+
+            if (result.error) {
+                console.error(result.error);
+            }
+            if (result.status !== 0) {
+                process.exit(typeof result.status === "number" ? result.status : 1);
+            }
+        }
         
         var newArgs = [process.argv[1], "--force", "--skip-em-check", "--silent"];
         Object.keys(params).forEach(function (key)
@@ -860,39 +877,39 @@ if (params.all) {
         console.log(highlight(" -- (1/5) Building ASM-JS engine..."));
         if (!params["skip-asm"] && (!hasOnlyFlag || params["only-asm"])) {
             removeOld("-asm");
-            spawnSync(process.execPath, newArgs.filter(function (arg)
+            runBuild(newArgs.filter(function (arg)
             {
                 return arg !== "--relaxed-simd";
-            }).concat(["--asm-js", "--no-split"]), {encoding: "utf8", env: process.env, cwd: __dirname, stdio: [0,1,2]});
+            }).concat(["--asm-js", "--no-split"]));
         } else {
             console.log(note("  Skipping..."));
         }
         console.log(highlight(" -- (2/5) Building Single-threaded Lite engine..."));
         if (!params["skip-lite-single"] && !params["skip-single-lite"] && (!hasOnlyFlag || params["only-lite-single"] || params["only-single-lite"])) {
             removeOld("-lite-single");
-            spawnSync(process.execPath, newArgs.concat(["--lite", "--single-threaded", "--no-split"]), {encoding: "utf8", env: process.env, cwd: __dirname, stdio: [0,1,2]});
+            runBuild(newArgs.concat(["--lite", "--single-threaded", "--no-split"]));
         } else {
             console.log(note("  Skipping..."));
         }
         console.log(highlight(" -- (3/5) Building Multi-threaded Lite engine..."));
         if (!params["skip-lite"] && (!hasOnlyFlag || params["only-lite"])) {
             removeOld("-lite");
-            spawnSync(process.execPath, newArgs.concat(["--lite", "--no-split"]), {encoding: "utf8", env: process.env, cwd: __dirname, stdio: [0,1,2]});
+            runBuild(newArgs.concat(["--lite", "--no-split"]));
         } else {
             console.log(note("  Skipping..."));
         }
         console.log(highlight(" -- (4/5) Building Single-threaded Standard engine..."));
         if (!params["skip-single"] && (!hasOnlyFlag || params["only-single"])) {
             removeOld("-single");
-            spawnSync(process.execPath, newArgs.concat(["--single-threaded"]), {encoding: "utf8", env: process.env, cwd: __dirname, stdio: [0,1,2]});
+            runBuild(newArgs.concat(["--single-threaded"]));
         } else {
             console.log(note("  Skipping..."));
         }
         console.log(highlight(" -- (5/5) Building Multi-threaded Standard engine..."));
         if (!params["skip-standard"] && (!hasOnlyFlag || params["only-standard"])) {
             removeOld("");
-            spawnSync(process.execPath, newArgs.concat(["--basename=stockfish-" + stockfishVersionNumber +
-                (params["relaxed-simd"] ? "-relaxed" : "")]), {encoding: "utf8", env: process.env, cwd: __dirname, stdio: [0,1,2]});
+            runBuild(newArgs.concat(["--basename=stockfish-" + stockfishVersionNumber +
+                (params["relaxed-simd"] ? "-relaxed" : "")]));
         } else {
             console.log(note("  Skipping..."));
         }
