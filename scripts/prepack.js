@@ -6,19 +6,14 @@
 
 "use strict";
 
-var fs = require("fs");
 var p = require("path");
 
 var srcDir = p.join(__dirname, "..", "src");
 var binDir = p.join(__dirname, "..", "bin");
 
 var version = require("../package.json").buildVersion;
-var engineMatch = require("./engine-file-matcher")(version);
+var packageFiles = require("./package-files");
 var buildScript = p.join(__dirname, "..", "build.js");
-
-try {
-    fs.mkdirSync(binDir)
-} catch (e) {}
 
 console.log(" *");
 console.log(" * Building engines...");
@@ -32,15 +27,4 @@ console.log(" *");
 console.log(" * Finished building engines successfully.");
 console.log(" *");
 
-/// Remove anything there already.
-fs.readdirSync(binDir).forEach(function (filename)
-{
-    fs.unlinkSync(p.join(binDir, filename));
-});
-
-fs.readdirSync(srcDir).forEach(function (filename)
-{
-    if (engineMatch.test(filename)) {
-        fs.cpSync(p.join(srcDir, filename), p.join(binDir, filename));
-    }
-});
+packageFiles.copy(srcDir, binDir, packageFiles.forVersion(version));
