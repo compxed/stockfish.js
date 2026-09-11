@@ -1,9 +1,9 @@
 # Stockfish 19 for Chess.com Analysis
 
-This development-only Chrome extension replaces the local Stockfish Worker used
-by the Chess.com analysis page with this repository's Stockfish.js 19 lite
-build. It follows Chess.com's choice between the threaded and single-threaded
-variants and leaves the Chess.com interface and its UCI integration unchanged.
+This Chrome extension replaces the local Stockfish Worker used by the Chess.com
+analysis page with this repository's Stockfish.js 19 lite build. It follows
+Chess.com's choice between the threaded and single-threaded variants and leaves
+the Chess.com interface and its UCI integration unchanged.
 
 Only Chess.com's lite engine selection is replaced. Selecting a full NNUE,
 Torch, Komodo, or any other engine keeps the original Chess.com Worker; silently
@@ -15,7 +15,13 @@ event pages. Do not use engine assistance in a game in progress.
 
 ## Build
 
-Build the required engine and assemble the unpacked extension:
+Users can install the ready-made ZIP attached to the GitHub release without
+building Stockfish.js. Download and extract the archive, open
+`chrome://extensions`, enable Developer mode, choose **Load unpacked**, and
+select the extracted directory.
+
+To build the extension from source instead, build the required engines and
+assemble the unpacked extension:
 
 ```sh
 npm run build-lite
@@ -70,3 +76,10 @@ CHROME_PATH=/path/to/chromium node \
 `verify-chesscom.js` performs the same check against the current public
 Chess.com analysis page. It uses a fresh temporary browser profile and does not
 sign in or access any game in progress.
+
+## License and source
+
+The extension and bundled Stockfish engine are distributed under the GNU GPL
+version 3. The release package includes `Copying.txt` and `SOURCE.txt`; the
+latter links to the corresponding source revision. This project is not
+affiliated with or endorsed by Chess.com.
