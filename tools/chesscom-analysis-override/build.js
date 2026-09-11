@@ -41,7 +41,7 @@ function build(argv)
         "stockfish-19-lite-single.js",
         "stockfish-19-lite-single.wasm",
     ];
-    var sourceFiles = ["manifest.json", "main.js", "bridge.js"];
+    var sourceFiles = ["manifest.json", "main.js", "bridge.js", "SOURCE.txt"];
 
     engineFiles.forEach(function (file)
     {
@@ -58,6 +58,8 @@ function build(argv)
     {
         fs.copyFileSync(path.join(toolDir, file), path.join(outputDir, file));
     });
+    fs.copyFileSync(path.join(repositoryRoot, "Copying.txt"),
+        path.join(outputDir, "Copying.txt"));
     engineFiles.forEach(function (file)
     {
         var source = path.join(engineDir, file);
