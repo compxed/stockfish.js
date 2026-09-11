@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Stockfish 19 for Chess.com Analysis",
+  "description": "Use a local Stockfish.js 19 build in the Chess.com analysis interface.",
+  "version": "0.1.0",
+  "minimum_chrome_version": "111",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.chess.com/analysis",
+        "https://www.chess.com/analysis/*"
+      ],
+      "js": ["main.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://www.chess.com/analysis",
+        "https://www.chess.com/analysis/*"
+      ],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "engine/stockfish-19-lite.js",
+        "engine/stockfish-19-lite.wasm",
+        "engine/stockfish-19-lite-single.js",
+        "engine/stockfish-19-lite-single.wasm"
+      ],
+      "matches": [
+        "https://www.chess.com/*"
+      ]
+    }
+  ]
+}

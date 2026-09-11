@@ -24,7 +24,7 @@
   "license": "GPL-3.0",
   "bin": "scripts/cli.js",
   "scripts": {
-    "test": "npm run test:runtime && npm run test:node-global-fetch && npm run test:command-queue && npm run test:relaxed-simd && npm run test:loader && npm run test:build && npm run test:package-files && npm run test:browser-benchmark",
+    "test": "npm run test:runtime && npm run test:node-global-fetch && npm run test:command-queue && npm run test:relaxed-simd && npm run test:loader && npm run test:build && npm run test:package-files && npm run test:chesscom-extension && npm run test:browser-benchmark",
     "test:runtime": "node tests/runtime.test.js",
     "test:node-global-fetch": "node tests/node-global-fetch.test.js",
     "test:command-queue": "node tests/command-queue.test.js",
@@ -32,11 +32,13 @@
     "test:loader": "node tests/loader.test.js",
     "test:build": "node tests/build.test.js",
     "test:package-files": "node tests/package-files.test.js",
+    "test:chesscom-extension": "node tests/chesscom-analysis-override.test.js",
     "test:browser-benchmark": "node tests/browser-benchmark.test.js",
     "build": "node build.js -f",
     "build-lite": "node build.js --lite -f",
     "build-single": "node build.js --single-threaded -f",
     "build-single-lite": "node build.js --single-threaded --lite -f",
+    "build:chesscom-extension": "node tools/chesscom-analysis-override/build.js",
     "postinstall": "node scripts/postinstall.js",
     "prepack": "node scripts/prepack.js",
     "postpack": "node scripts/postpack.js"

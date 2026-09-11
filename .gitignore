@@ -29,3 +29,4 @@ tests/bench_tmp.epd
 etc/
 examples/node_modules/
 bin/
+tools/chesscom-analysis-override/dist/
