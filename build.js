@@ -282,29 +282,20 @@ function ensureNets()
 }
 function getNetPaths()
 {
-    var filename;
-    if (params["ultra-lite"]) {
-        filename = "ultra_lite_nets.h";
-    } else if (params.lite) {
-        filename = "lite_nets.h";
-    } else {
-        filename = "evaluate.h";
-    }
-    var code = fs.readFileSync(p.join(srcPath, filename), "utf8");
+    // Lite mode uses the smaller mirrored piece-square network. Both net
+    // names are defined in evaluate.h; the lite one is EvalFileLiteName.
+    var macro =
+      (params.lite || params["ultra-lite"]) ? "EvalFileLiteName" : "EvalFileDefaultName";
+    var code = fs.readFileSync(p.join(srcPath, "evaluate.h"), "utf8");
     var match;
     var nets = [];
     
-    match = code.match(/\#define EvalFileDefaultNameBig "([^"]+)"/);
+    match = code.match(new RegExp("\\#define " + macro + ' "([^"]+)"'));
+    
     if (match) {
         nets.push({path: match[1], type: "Big"});
     } else {
-        console.error("Cannot find EvalFileDefaultNameBig path");
-    }
-    match = code.match(/\#define EvalFileDefaultNameSmall "([^"]*)"/);
-    if (match) {
-        nets.push({path: match[1], type: "Small"});
-    } else {
-        console.error("Cannot find EvalFileDefaultNameSmall path");
+        console.error("Cannot find " + macro + " path");
     }
     
     return nets;
@@ -322,10 +313,8 @@ function alreadyEmbedded(nets)
     }
     
     for (i = nets.length - 1; i >= 0; --i) {
-        if (!params.lite || params["ultra-lite"] || nets[i].type !== "small") {
-            if (data.indexOf(nets[i].path) === -1) {
-                return false;
-            }
+        if (data.indexOf(nets[i].path) === -1 || data.indexOf("gEmbeddedNNUEData") === -1) {
+            return false;
         }
     }
     return true;
@@ -333,11 +322,12 @@ function alreadyEmbedded(nets)
 
 function embedNet(outputPath, net)
 {
-    /// Read nets or create an empty net for the small net in Lite mode.
-    var data = net.path ? fs.readFileSync(p.join(srcPath, net.path)) : Buffer.alloc(1);
+    ///// Read nets or create an empty net for the small net in Lite mode.
+    //var data = net.path ? fs.readFileSync(p.join(srcPath, net.path)) : Buffer.alloc(1);
+    var data = fs.readFileSync(p.join(srcPath, net.path));
     var out = "";
     var prefix = "// Generated from " + net.path + " on " + (new Date).toString() + "\n";
-    var netVarBase = "gEmbeddedNNUE" + net.type;
+    var netVarBase = "gEmbeddedNNUE";
     var len = data.byteLength;
     var i;
     var char;
@@ -404,11 +394,12 @@ function makeRelative(from, to)
 
 function renameAndSymlink(origPath, newPath)
 {
+    unlinkIfExists(newPath);
     fs.renameSync(origPath, newPath);
-    makeSymLink(newPath, origPath);
+    makeSymLink(origPath, newPath);
 }
 
-function makeSymLink(newPath, origPath)
+function makeSymLink(origPath, newPath)
 {
     fs.symlinkSync(makeRelative(origPath, newPath), origPath);
     builtFiles.push(newPath);
@@ -421,6 +412,13 @@ function fillInBlanks(code)
     return code;
 }
 
+function unlinkIfExists(path)
+{
+    try {
+        fs.unlinkSync(path);
+    } catch (e) {}
+}
+
 function fixUpWASMBuild()
 {
     var stockfishWASMLoaderPath = p.join(srcPath, "stockfish.js");
@@ -429,57 +427,78 @@ function fixUpWASMBuild()
     var workerExternPostData = fs.readFileSync(workerExternPostPath, "utf8");
     var workerData = "";
     var stockfishWASMLoaderData;
-    var hashParts;
+    var hashParts = "";
     var finalWasmPath = stockfishWASMPath;
     var finalLoaderPath = stockfishWASMLoaderPath;
-    
+    var doSplit = Boolean(params.split && !params["no-split"]);
+    var splitCount = doSplit ? parseInt(params.split, 10) : 0;
+
+    if (doSplit && (!splitCount || splitCount < 1)) {
+        throw new Error("Invalid --split value: " + params.split);
+    }
+
     if (!params["single-threaded"]) {
         workerData = fs.readFileSync(stockfishWorkerThreadPath, "utf8") + workerExternPostData;
-        try {
-            fs.unlinkSync(stockfishWorkerThreadPath);
-        } catch (e) {}
+        unlinkIfExists(stockfishWorkerThreadPath);
     }
-    stockfishWASMLoaderData = fs.readFileSync(stockfishWASMLoaderPath, "utf8").replace(/\/\/\/ Insert worker here/, workerData);
+
+    stockfishWASMLoaderData = fs.readFileSync(stockfishWASMLoaderPath, "utf8")
+        .replace(/\/\/\/ Insert worker here/, workerData);
+
     stockfishWASMLoaderData = fillInBlanks(stockfishWASMLoaderData);
+
+    /// This must happen before renaming or splitting.
     stockfishWASMLoaderData = insertTotalBytesVar(stockfishWASMPath, stockfishWASMLoaderData);
-    if (params.split && !params["no-split"]) {
-        stockfishWASMLoaderData = insertSplitCount(stockfishWASMLoaderData);
+
+    if (doSplit) {
+        stockfishWASMLoaderData = insertSplitCount(stockfishWASMLoaderData, splitCount);
     }
-    
+
     stockfishWASMLoaderData = minify(stockfishWASMLoaderData);
     fs.writeFileSync(stockfishWASMLoaderPath, stockfishWASMLoaderData);
+
     if (!basename && params.hash) {
         basename = "stockfish";
     }
-    
+
     if (basename) {
         /// The hash for all files is the combined hash of both the JS and the WASM.
         /// This makes it clear where the WASM file is located based on the JS file's string.
         /// That way, we don't have to tell the JS where the WASM file is located.
         hashParts = getHashPart([stockfishWASMLoaderPath, stockfishWASMPath]);
+
         finalWasmPath = p.join(srcPath, basename + hashParts + ".wasm");
         finalLoaderPath = p.join(srcPath, basename + hashParts) + ".js";
+
         renameAndSymlink(stockfishWASMLoaderPath, finalLoaderPath);
         renameAndSymlink(stockfishWASMPath, finalWasmPath);
+
         if (params["debug-wasm"]) {
             try {
-                renameAndSymlink(stockfishWASMPath + ".map", p.join(srcPath, basename + hashParts + ".wasm.map"));
+                renameAndSymlink(
+                    stockfishWASMPath + ".map",
+                    p.join(srcPath, basename + hashParts + ".wasm.map")
+                );
             } catch (e) {}
         }
     } else {
         builtFiles.push(stockfishWASMLoaderPath, stockfishWASMPath);
+
         if (params["debug-wasm"]) {
             builtFiles.push(stockfishWASMLoaderPath, stockfishPath + ".wasm.map");
         }
     }
-    
-    if (params.split && !params["no-split"]) {
-        splitFile(finalWasmPath, params.split);
-        try {
-            fs.unlinkSync(p.join(stockfishWASMPath));
-        } catch (e) {}
+
+    if (doSplit) {
+        /// Split the final versioned WASM file, not the generic stockfish.wasm.
+        splitFile(finalWasmPath, splitCount);
+
+        /// If we renamed stockfish.wasm to a versioned file, stockfish.wasm is now
+        /// only a symlink to the real file. After splitting, the real file is gone,
+        /// so remove the stale symlink.
+        unlinkIfExists(stockfishWASMPath);
     }
-    
+
     console.log("Built " + note(p.basename(finalLoaderPath)));
 }
 
@@ -511,7 +530,7 @@ function splitFile(wasmPath, count)
             try {
                 fs.unlinkSync(origPath);
             } catch (e) {}
-            makeSymLink(newPath, origPath);
+            makeSymLink(origPath, newPath);
         }
     }
     
@@ -526,9 +545,9 @@ function insertTotalBytesVar(wasmPath, code)
     var wasmSize = fs.lstatSync(wasmPath).size;
     return code.replace(/(var engineTotalBytes);/, "$1=" + wasmSize + ";");
 }
-function insertSplitCount(code)
+function insertSplitCount(code, count)
 {
-    return code.replace(/(var enginePartsCount);/, "$1=" + params.split + ";");
+    return code.replace(/(var enginePartsCount);/, "$1=" + count + ";");
 }
 
 function fixUpASMJSBuild()
@@ -671,8 +690,7 @@ if (params.help || params["help-all"] || params.h) {
     console.log(                     "                     See " + highlight("--help-all") + " for more options, or use " + highlight("--bin") + " instead");
     console.log("  " + highlight("--asm-js") + "           Build the ASM.JS version");
     console.log("  " + highlight("--basename") + "         The filename for the engine (default: " + note ("stockfish") + ")");
-    console.log(                     "                     This will not only rename the files, it will also rewrite the base JS file");
-    console.log(                     "                     to load the correct WASM engine");
+    console.log(                     "                     This will not only rename the files, it will also rewrite the base JS file to load the correct WASM engine");
     console.log("  " + highlight("--bin") + "              Attempt to build a binary engine that is the most suitable for this system");
     console.log("  " + highlight("--colors") + "           Always colorize the output, even through a pipe");
     console.log("  " + highlight("--comp") + "             Compiler to build C code with");
@@ -696,6 +714,7 @@ if (params.help || params["help-all"] || params.h) {
     console.log("  " + highlight("--only-lite-single") + " Only build lite single-threaded engine with " + highlight("--all"));
     console.log("  " + highlight("--only-single") + "      Only build non-lite single-threaded engine with " + highlight("--all"));
     console.log("  " + highlight("--only-standard") + "    Only build standard, multi-threaded engine with " + highlight("--all"));
+    console.log("  " + highlight("--output-dir") + "=" + note("dir") + "   The directory to place the built files (default: " + note("src") + ")");
     console.log("  " + highlight("-s --silent") + "        Do not beep");
     console.log("  " + highlight("--single-threaded") + "  Compile the engine without Pthreads");
     console.log("  " + highlight("--skip-asm") + "         Do not build the ASM.JS engine with " + highlight("--all"));
@@ -822,25 +841,16 @@ if (typeof params.basename === "string") {
 if (params.force || params.f) {
     args.push("--always-make");
     //execFileSync(params.make, ["clean"], {stdio: "pipe", env: process.env, cwd: srcPath});
-} else if (params["force-linking"]) {
-    ///NOTE: --force will also link as well, so both are not needed.
-    if (buildWithEmscripten) {
-        try {
-            fs.unlinkSync(stockfishJSWASMPath);
-        } catch (e) {}
-        try {
-            fs.unlinkSync(stockfishJSWASMLoaderPath);
-        } catch (e) {}
-        if (basename) {
-            try {
-                fs.unlinkSync(p.join(srcPath, basename + ".js"));
-            } catch (e) {}
-        }
-    } else {
-        try {
-            fs.unlinkSync(stockfishPath);
-        } catch (e) {}
+}
+if (buildWithEmscripten) {
+    unlinkIfExists(stockfishPath + ".js");
+    unlinkIfExists(stockfishWASMPath);
+    if (basename) {
+        unlinkIfExists(p.join(srcPath, basename + ".js"));
+        unlinkIfExists(p.join(srcPath, basename + ".wasm"));
     }
+} else {
+    unlinkIfExists(stockfishPath);
 }
 
 if (params["no-minify"]) {
