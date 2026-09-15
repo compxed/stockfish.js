@@ -6,11 +6,12 @@
 var params = require("util").parseArgs({strict: false, allowPositionals: false}).values;
 var score;
 var depthFound = 0;
-var enginePath = params.enginePath ?? require("path").join(__dirname, "src", "stockfish.js");
+var enginePath = (params.enginePath || params["engine-path"]) ?? require("path").join(__dirname, "src", "stockfish.js");
 var execPath = params.execPath ?? process.execPath;
-var minDepth = Number((params.minDepth || params["min-depth"]) ?? 20);
+var minDepth = Number((params.minDepth || params["min-depth"]) ?? 16);
 var minScore = Number((params.minScore || params["min-score"]) ?? 500);
 var delayModifier = Number((params.delayModifier || params["delay-modifier"]) ?? 1); /// Give the tests more (or less) time
+var thinkingTime = Number((params.thinkingTime || params["thinking-time"]) ?? 8000);
 var testCompletedCorrectly = false;
 var spawnArgs = [];
 
@@ -20,7 +21,7 @@ if (enginePath) {
 
 highlight("Starting: " + execPath + (spawnArgs.length ? " " + spawnArgs.join(" ") : ""));
 
-var stockfish = require("child_process").spawn(execPath, spawnArgs, {stdio: "pipe", env: process.env, encoding: "utf8", detached: true, shell: true});
+var stockfish = require("child_process").spawn(execPath, spawnArgs, {stdio: "pipe", env: process.env, encoding: "utf8", detached: true, shell: false});
 
 function getParams(options, argv)
 {
@@ -145,7 +146,7 @@ stockfish.stdout.on("data", function onstdout(data)
             setTimeout(function ()
             {
                 write("stop");
-            }, 3000 * delayModifier);
+            }, thinkingTime * delayModifier);
         } else {
             error("Cannot find valid legal uci moves.");
         }
@@ -178,7 +179,7 @@ stockfish.on("exit", function (code)
 setTimeout(function ()
 {
     error("Timeout");
-}, 1000 * 5 * delayModifier).unref();
+}, thinkingTime * 1.5 * delayModifier).unref();
 
 process.on("exit", function ()
 {

@@ -6,6 +6,6 @@
  * Based on Stockfish (c) T. Romstad, M. Costalba, J. Kiiski, G. Linscott and other contributors.
  * https://github.com/official-stockfish/Stockfish
  *
- * Nets by Linmiao Xu (linrock)
- * https://tests.stockfishchess.org/nns?network_name=nn-9067e33176e
+ * Nets by Chris Bao (sscg13)
+ * https://tests.stockfishchess.org/nns?network_name=nn-61e7af4bb97d
  */

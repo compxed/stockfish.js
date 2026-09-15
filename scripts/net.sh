@@ -1,18 +1,18 @@
 #!/bin/sh
 
-wget_or_curl=$( (command -v wget > /dev/null 2>&1 && echo "wget -qO-") || \
-                (command -v curl > /dev/null 2>&1 && echo "curl -skL"))
+# download commands with a 5min time-out to ensure things fail if the server stalls
+wget_or_curl=$( (command -v wget >/dev/null 2>&1 && echo "wget -qO- --timeout=300 --tries=1") ||
+  (command -v curl >/dev/null 2>&1 && echo "curl -skL --max-time 300"))
 
-
-sha256sum=$( (command -v shasum > /dev/null 2>&1 && echo "shasum -a 256") || \
-             (command -v sha256sum > /dev/null 2>&1 && echo "sha256sum"))
+sha256sum=$( (command -v shasum >/dev/null 2>&1 && echo "shasum -a 256") ||
+  (command -v sha256sum >/dev/null 2>&1 && echo "sha256sum"))
 
 if [ -z "$sha256sum" ]; then
   >&2 echo "sha256sum not found, NNUE files will be assumed valid."
 fi
 
 get_nnue_filename() {
-  grep "$1" evaluate.h | grep "#define" | sed "s/.*\(nn-[a-z0-9]\{12\}.nnue\).*/\1/"
+  grep "$1" evaluate.h | grep "#define" | head -1 | sed "s/.*\(nn-[a-z0-9]\{12\}.nnue\).*/\1/"
 }
 
 validate_network() {
@@ -44,7 +44,7 @@ fetch_network() {
 
   if [ -z "$wget_or_curl" ]; then
     >&2 printf "%s\n" "Neither wget or curl is installed." \
-          "Install one of these tools to download NNUE files automatically."
+      "Install one of these tools to download NNUE files automatically."
     exit 1
   fi
 
@@ -52,14 +52,16 @@ fetch_network() {
     "https://tests.stockfishchess.org/api/nn/$_filename" \
     "https://github.com/official-stockfish/networks/raw/master/$_filename"; do
     echo "Downloading from $url ..."
-    if $wget_or_curl "$url" > "$_filename"; then
+    if $wget_or_curl "$url" >"$_filename"; then
       if validate_network "$_filename"; then
         echo "Successfully validated $_filename"
       else
-        echo "Downloaded $_filename is invalid"
+        rm -f $_filename
+        echo "Downloaded $_filename is invalid, and has been removed."
         continue
       fi
     else
+      rm -f $_filename
       echo "Failed to download from $url"
     fi
     if [ -f "$_filename" ]; then
@@ -72,5 +74,17 @@ fetch_network() {
   return 1
 }
 
-fetch_network EvalFileDefaultNameBig && \
-fetch_network EvalFileDefaultNameSmall
+# In Lite mode the smaller mirrored piece-square network is used.
+NNUE_MACRO=EvalFileDefaultName
+if [ "$LITE_NET" = "yes" ] || [ "$ULTRA_LITE_NET" = "yes" ]; then
+  NNUE_MACRO=EvalFileLiteName
+fi
+
+fetch_network "$NNUE_MACRO"
+
+if [ "$1" = "0" ]; then
+    DUMP_FILE=universal/network_dump.inc
+    echo -n '"' > $DUMP_FILE
+    hexdump -v -e '"\\" "x" 1/1 "%02X"' "$(get_nnue_filename "$NNUE_MACRO")" >> $DUMP_FILE
+    echo -n '"' >> $DUMP_FILE
+fi

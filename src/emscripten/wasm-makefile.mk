@@ -48,14 +48,6 @@ else
 	EM_LDFLAGS  += -s NO_FILESYSTEM=1
 endif
 
-
-ifeq ($(LITE_NET),yes)
-	EM_CXXFLAGS += -D__LITE_NET__
-endif
-ifeq ($(ULTRA_LITE_NET),yes)
-	EM_CXXFLAGS += -D__ULTRA_LITE_NET__
-endif
-
 # Enable sanatizers https://emscripten.org/docs/debugging/Sanitizers.html
 #EM_CXXFLAGS  += -fsanitize=undefined
 #EM_LDFLAGS  += -fsanitize=undefined

@@ -1,14 +1,17 @@
 # WASM
 src/emscripten/wasm_embedded_*.h
-src/emscripten/extern-pre-split.js
 **/*.map
 **/*.o.tmp
-
 
 # Files from build
 **/*.o
 **/*.s
 src/.depend
+src/temp_builds
+src/universal/network_dump.inc
+.build_sha.txt
+.build_date.txt
+.build_diffindex.txt
 
 # Built binary
 src/stockfish*
