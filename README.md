@@ -26,7 +26,7 @@ This edition of Stockfish.js comes in five flavors:
 
 It depends on your project, but most likely, you should use the `lite single-threaded` engine because it is fast and does not require any complicated setup. Although the full engine is objectively stronger, the lite engine is still far stronger than any human will ever be, and the full engine is so large that it can be very slow to load, which would cause a poor user experience.
 
-The WASM Stockfish engines will run on all modern browsers (e.g., Chrome/Edge/Firefox/Opera/Safari) on supported systems (Windows 10+/macOS 11+/iOS 16+/Linux/Android), as well as currently supported versions of Node.js. For slightly older browsers, see the <a href=../../tree/Stockfish16>Stockfish.js 16 branch</a>. The ASM-JS engine will run in essentially any browser/runtime that supports JavaScript. For an engine that supports chess variants (like 3-check and Crazyhouse), see the <a href=../../tree/Stockfish11>Stockfish.js 11 branch</a>.
+The WASM Stockfish engines will run on all modern browsers (e.g., Chrome/Edge/Firefox/Opera/Safari) on supported systems (Windows 10+/macOS 11+/iOS 16+/Linux/Android), as well as currently supported versions of Node.js. For slightly older browsers, see the <a href=../../tree/Stockfish16>Stockfish.js 16 branch</a>. The ASM-JS engine will run in essentially any browser/runtime that supports JavaScript. For an engine that supports chess variants (like three-check and crazyhouse), see the <a href=../../tree/Stockfish11>Stockfish.js 11 branch</a>.
 
 ### How do I use stockfish.js?
 
@@ -43,7 +43,7 @@ In order to compile the engine, you need to have <a href="https://emscripten.org
 ### Thanks
 
 - <a href="https://github.com/exoticorn/stockfish-js">exoticorn</a> for the original Stockfish to JS conversion
-- <a href="https://github.com/ddugovic/Stockfish">ddugovic</a> for this Stockfish with many variants
+- <a href="https://github.com/ddugovic/Stockfish">ddugovic</a> for his Stockfish with many variants
 - <a href="https://github.com/niklasf/">niklasf</a> for his <a href="https://github.com/niklasf/stockfish.js">stockfish.js</a> & <a href="https://github.com/niklasf/stockfish.wasm">stockfish.wasm</a>
 - <a href="https://github.com/hi-ogawa/Stockfish">hi-ogawa</a> for his optimizations
 - <a href="https://github.com/linrock">linrock</a> for older <a href="https://tests.stockfishchess.org/nns?network_name=nn-9067e33176e">lite nets</a>
