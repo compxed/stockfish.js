@@ -274,8 +274,6 @@ function ensureNets()
     var args = ["net"];
     if (params.lite) {
         args.push("LITE_NET=yes");
-    } else if (params["ultra-lite"]) {
-        args.push("ULTRA_LITE_NET=yes");
     }
     
     execFileSync(params.make, args, {cwd: srcPath});
@@ -285,7 +283,7 @@ function getNetPaths()
     // Lite mode uses the smaller mirrored piece-square network. Both net
     // names are defined in evaluate.h; the lite one is EvalFileLiteName.
     var macro =
-      (params.lite || params["ultra-lite"]) ? "EvalFileLiteName" : "EvalFileDefaultName";
+      params.lite ? "EvalFileLiteName" : "EvalFileDefaultName";
     var code = fs.readFileSync(p.join(srcPath, "evaluate.h"), "utf8");
     var match;
     var nets = [];
@@ -576,9 +574,7 @@ function getVersion()
 {
     var version = params.version === "string" ? params.version : stockfishVersionNumber;
     if (buildWithEmscripten) {
-        if (params["ultra-lite"]) {
-            version += " Ultra Lite";
-        } else if (params.lite) {
+        if (params.lite) {
             version += " Lite";
         }
         if (!params["asm-js"]) {
@@ -634,6 +630,11 @@ function moveBuiltFiles()
         basename = p.basename(builtFiles[i]);
         renameAndSymlink(builtFiles[i], p.join(params["output-dir"], basename));
     }
+}
+
+if (params["ultra-lite"] && !params.help && !params["help-all"] && !params.h) {
+    console.error("--ultra-lite is not available for Stockfish 19; use --lite instead");
+    process.exit(1);
 }
 
 if (params["wasm-debug"]) { /// alias
@@ -746,7 +747,6 @@ if (params.help || params["help-all"] || params.h) {
     console.log("  " + highlight("--skip-standard") + "    Do not build standard, multi-threaded engine with " + highlight("--all"));
     console.log("  " + highlight("--strict-em-check") + "  Fail if Emscripten version does not match expected version (" + note(expectedEmscripten) + ")");
     console.log("  " + highlight("--split") + "=" + note("count") + "      Split up WASM binary how many parts");
-    console.log("  " + highlight("--ultra-lite") + "       Embed even smaller net file");
     console.log("  " + highlight("-v --verbose") + "       Print extra info");
     console.log("  " + highlight("--version") + "          Specify Stockfish version number (default: " + note(stockfishVersionNumber) + ")");
     
@@ -902,9 +902,6 @@ if (params["no-minify"]) {
 if (!basename && params["asm-js"]) {
     basename = "stockfish-" + stockfishVersionNumber + "-asm";
 }
-if (!basename && params["ultra-lite"] && params["single-threaded"]) {
-    basename = "stockfish-" + stockfishVersionNumber + "-ultra-lite-single";
-}
 if (!basename && params.lite && params["single-threaded"]) {
     basename = "stockfish-" + stockfishVersionNumber + "-lite-single";
 }
@@ -913,12 +910,6 @@ if (params.lite) {
     args.push("LITE_NET=yes");
     if (!basename) {
         basename = "stockfish-" + stockfishVersionNumber + "-lite";
-    }
-}
-if (params["ultra-lite"]) {
-    args.push("ULTRA_LITE_NET=yes");
-    if (!basename) {
-        basename = "stockfish-" + stockfishVersionNumber + "-ultra-lite";
     }
 }
 
@@ -972,9 +963,7 @@ if (String(params.version).toLowerCase() === "hash") {
 }
 
 
-if (params["ultra-lite"]) {
-    wasmEmbeddedNetsPath = "wasm_embedded_ultra_lite_network.h";
-} else if (params.lite) {
+if (params.lite) {
     wasmEmbeddedNetsPath = "wasm_embedded_lite_network.h";
 } else {
     wasmEmbeddedNetsPath = "wasm_embedded_networks.h";

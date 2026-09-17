@@ -18,6 +18,11 @@ assert.strictEqual(context.getNetPaths()[0].path, "nn-1a298aa575a0.nnue");
 context.params.lite = true;
 assert.strictEqual(context.getNetPaths()[0].path, "nn-61e7af4bb97d.nnue");
 
+var unsupported = spawnSync(process.execPath, ["build.js", "--ultra-lite"],
+    {cwd: root, encoding: "utf8"});
+assert.strictEqual(unsupported.status, 1);
+assert.match(unsupported.stderr, /--ultra-lite is not available for Stockfish 19/);
+
 var failureRoot = fs.mkdtempSync(p.join(os.tmpdir(), "stockfish-build-failure-test-"));
 try {
     fs.mkdirSync(p.join(failureRoot, "src"));
