@@ -113,6 +113,10 @@ You only need to compile the engine if you want to make changes to the engine it
 
 In order to compile the engine, you need to have <a href="https://emscripten.org/docs/getting_started/downloads.html">Emscripten `6.0.6`</a> installed and in your path. Then you can compile Stockfish.js with the build script: `./build.js`. See `./build.js --help` for details. To build all flavors, run `./build.js --all`.
 
+Install the build-time JavaScript minifier with `npm ci --ignore-scripts` first.
+The install hook expects compiled artifacts, so it is skipped when bootstrapping
+a source checkout. Runtime use of the published package needs no minifier.
+
 To build an optional variant for browsers that support WebAssembly relaxed SIMD, add `--relaxed-simd`. For example, `./build.js --lite --single-threaded --relaxed-simd` creates `stockfish-19-lite-single-relaxed.js` and its matching WASM file. This build uses the relaxed integer dot-product instruction in the NNUE evaluation path. Applications loading this artifact directly must detect support for that exact instruction and keep the regular SIMD build as a fallback. When `StockfishLoader` is used, it performs this exact probe and fallback automatically.
 
 ### Thanks

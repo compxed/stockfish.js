@@ -24,6 +24,7 @@ To build the extension from source instead, build the required engines and
 assemble the unpacked extension:
 
 ```sh
+npm ci --ignore-scripts
 npm run build-lite
 npm run build-single-lite
 npm run build:chesscom-extension
