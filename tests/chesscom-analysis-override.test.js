@@ -159,6 +159,10 @@ assert.strictEqual(api.isSingleThreadedUrl(
     locationObject), false);
 
 var threadedSnippet = "new Worker(_n,{workerData:\"em-pthread\",name:\"em-pthread\"})";
+var sourceRevision = "0123456789abcdef0123456789abcdef01234567";
+assert.ok(extensionBuild.sourceNotice(sourceRevision).includes("/tree/" + sourceRevision));
+assert.ok(!extensionBuild.sourceNotice(sourceRevision).includes("@SOURCE_REVISION@"));
+assert.throws(function () { extensionBuild.sourceNotice("master"); }, /full Git commit hash/);
 assert.strictEqual(extensionBuild.adaptThreadedEngine(threadedSnippet),
     "new Worker(_n+(_n.endsWith(\",worker\")?\"\":\",worker\")," +
     "{workerData:\"em-pthread\",name:\"em-pthread\"})");

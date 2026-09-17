@@ -4,7 +4,7 @@ This package is distributed under the GNU General Public License version 3.
 The license text is included as Copying.txt.
 
 The complete corresponding source code for this release is available at:
-https://github.com/compxed/stockfish.js/tree/chesscom-analysis-override-v0.1.0
+https://github.com/compxed/stockfish.js/tree/@SOURCE_REVISION@
 
 The source repository includes the Stockfish source, Stockfish.js build system,
 extension integration, build instructions, and tests used to create this

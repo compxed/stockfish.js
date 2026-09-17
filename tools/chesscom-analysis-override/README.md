@@ -35,6 +35,11 @@ An existing artifact directory can be supplied instead:
 node tools/chesscom-analysis-override/build.js --engine-dir /path/to/bin
 ```
 
+`SOURCE.txt` records the current Git commit. When building from a source archive
+without Git metadata, pass its full commit hash with `--source-revision`.
+Release builds must use engine artifacts built from that same revision and
+publish the corresponding source commit.
+
 The unpacked extension is written to
 `tools/chesscom-analysis-override/dist/`. Open `chrome://extensions`, enable
 Developer mode, choose **Load unpacked**, and select that directory. Reload the

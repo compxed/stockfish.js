@@ -6,6 +6,7 @@
 
 var fs = require("fs");
 var path = require("path");
+var execFileSync = require("child_process").execFileSync;
 
 function argumentValue(argv, name)
 {
@@ -27,6 +28,15 @@ function adaptThreadedEngine(source)
         "{workerData:\"em-pthread\",name:\"em-pthread\"})");
 }
 
+function sourceNotice(revision)
+{
+    if (!/^[0-9a-f]{40}$/.test(revision)) {
+        throw new Error("Source revision must be a full Git commit hash.");
+    }
+    return fs.readFileSync(path.join(__dirname, "SOURCE.txt"), "utf8")
+        .replace("@SOURCE_REVISION@", revision);
+}
+
 function build(argv)
 {
     var toolDir = __dirname;
@@ -41,7 +51,7 @@ function build(argv)
         "stockfish-19-lite-single.js",
         "stockfish-19-lite-single.wasm",
     ];
-    var sourceFiles = ["manifest.json", "main.js", "bridge.js", "SOURCE.txt"];
+    var sourceFiles = ["manifest.json", "main.js", "bridge.js"];
 
     engineFiles.forEach(function (file)
     {
@@ -52,12 +62,17 @@ function build(argv)
                 "\nBuild them with: npm run build-lite && npm run build-single-lite");
         }
     });
+    var revision = argumentValue(argv, "--source-revision") ||
+        execFileSync("git", ["rev-parse", "HEAD"],
+            {cwd: repositoryRoot, encoding: "utf8"}).trim();
+    var notice = sourceNotice(revision);
     fs.rmSync(outputDir, {recursive: true, force: true});
     fs.mkdirSync(engineOutputDir, {recursive: true});
     sourceFiles.forEach(function (file)
     {
         fs.copyFileSync(path.join(toolDir, file), path.join(outputDir, file));
     });
+    fs.writeFileSync(path.join(outputDir, "SOURCE.txt"), notice);
     fs.copyFileSync(path.join(repositoryRoot, "Copying.txt"),
         path.join(outputDir, "Copying.txt"));
     engineFiles.forEach(function (file)
@@ -85,4 +100,5 @@ if (require.main === module) {
 }
 
 build.adaptThreadedEngine = adaptThreadedEngine;
+build.sourceNotice = sourceNotice;
 module.exports = build;
