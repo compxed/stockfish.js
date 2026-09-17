@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
 
     Tune::init(uci->engine_options());
 
-    uci.loop();
+    uci->loop();
 #else
     uciP = new UCIEngine(argc, argv); // initialize the UCI object
     Tune::init(uciP->engine_options());
