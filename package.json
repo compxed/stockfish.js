@@ -35,7 +35,7 @@
     "test:loader": "node tests/loader.test.js",
     "test:build": "node tests/build.test.js",
     "test:package-files": "node tests/package-files.test.js",
-    "test:chesscom-extension": "node tests/chesscom-analysis-override.test.js",
+    "test:chesscom-extension": "node tests/chesscom-analysis-override.test.js && node tests/chesscom-manual-test.test.js",
     "test:browser-benchmark": "node tests/browser-benchmark.test.js",
     "build": "node build.js -f",
     "build-lite": "node build.js --lite -f",

@@ -31,3 +31,4 @@ examples/node_modules/
 node_modules/
 bin/
 tools/chesscom-analysis-override/dist/
+tools/chesscom-analysis-override/manual-test/dist/

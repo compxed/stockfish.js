@@ -83,6 +83,10 @@ CHROME_PATH=/path/to/chromium node \
 Chess.com analysis page. It uses a fresh temporary browser profile and does not
 sign in or access any game in progress.
 
+For release validation in a normal signed-in Chrome session, the optional
+[manual test package](manual-test/README.md) adds a native/override switch and
+local JSON export. Its diagnostics are not included in the release extension.
+
 ## License and source
 
 The extension and bundled Stockfish engine are distributed under the GNU GPL
