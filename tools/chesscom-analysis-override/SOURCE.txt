@@ -1,4 +1,4 @@
-Stockfish 19 for Chess.com Analysis 0.1.0
+Stockfish 19 for Chess.com Analysis 0.2.0
 
 This package is distributed under the GNU General Public License version 3.
 The license text is included as Copying.txt.

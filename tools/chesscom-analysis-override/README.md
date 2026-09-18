@@ -20,6 +20,10 @@ building Stockfish.js. Download and extract the archive, open
 `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and
 select the extracted directory.
 
+Version 0.2.0 is based on upstream Stockfish.js 19 with this fork's wrapper and
+build changes. It replaces the earlier preview port. When updating, disable
+the old extension and any manual test package before loading the new one.
+
 To build the extension from source instead, build the required engines and
 assemble the unpacked extension:
 
