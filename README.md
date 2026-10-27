@@ -23,6 +23,7 @@ A few notes on the table:
  * The multi-threaded engines need the page to be [cross-origin isolated](https://web.dev/articles/cross-origin-isolation-guide) so that `SharedArrayBuffer` is available. The server must send both `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`. You can check the current page with `crossOriginIsolated` in the browser console. The demo server in `examples/` sends these headers automatically.
  * The single-threaded engines run without those headers, but the UCI command `setoption name Threads` has no effect on them.
  * The lite engines use a much smaller neural network, so they are far smaller and quite a bit weaker.
+ * A fixed `go depth` is a search target, not a time limit; its runtime can vary greatly by position and neural network. Interactive clients should use `go movetime`, `go nodes`, or `go infinite` followed by `stop` when they need a bounded response time.
  * The ASM-JS engine is compiled to JavaScript, not WASM. It runs in essentially any browser or runtime that supports JavaScript. It is very slow and weak, and it is larger than the lite WASM engines. Use it only as a last resort.
 
 ### Which engine should I use?
